@@ -15,10 +15,13 @@
  */
 
 
+open class NativeArtifact( val fileName: String, val classifier: String, val type: String ) {}
+
 open class PublishExtension {
 	var artifactId: String? = null
 	var name: String? = null
 	var description: String? = null
+	var nativeArtifacts: List<NativeArtifact>? = null
 }
 
 val extension = project.extensions.create<PublishExtension>( "flatlafPublish" )
@@ -41,34 +44,43 @@ publishing {
 
 			pom {
 				afterEvaluate {
-					this@pom.name.set( extension.name )
-					this@pom.description.set( extension.description )
+					this@pom.name = extension.name
+					this@pom.description = extension.description
 				}
-				url.set( "https://github.com/JFormDesigner/FlatLaf" )
+				url = "https://github.com/JFormDesigner/FlatLaf"
 
 				licenses {
 					license {
-						name.set( "The Apache License, Version 2.0" )
-						url.set( "https://www.apache.org/licenses/LICENSE-2.0.txt" )
+						name = "The Apache License, Version 2.0"
+						url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
 					}
 				}
 
 				developers {
 					developer {
-						name.set( "Karl Tauber" )
-						organization.set( "FormDev Software GmbH" )
-						organizationUrl.set( "https://www.formdev.com/" )
+						name = "Karl Tauber"
+						organization = "FormDev Software GmbH"
+						organizationUrl = "https://www.formdev.com/"
 					}
 				}
 
 				scm {
-					connection.set( "scm:git:git://github.com/JFormDesigner/FlatLaf.git" )
-					url.set( "https://github.com/JFormDesigner/FlatLaf" )
+					connection = "scm:git:git://github.com/JFormDesigner/FlatLaf.git"
+					url = "https://github.com/JFormDesigner/FlatLaf"
 				}
 
 				issueManagement {
-					system.set( "GitHub" )
-					url.set( "https://github.com/JFormDesigner/FlatLaf/issues" )
+					system = "GitHub"
+					url = "https://github.com/JFormDesigner/FlatLaf/issues"
+				}
+			}
+
+			afterEvaluate {
+				extension.nativeArtifacts?.forEach {
+					artifact( artifacts.add( "archives", file( it.fileName ) ) {
+						classifier = it.classifier
+						type = it.type
+					} )
 				}
 			}
 		}
@@ -109,4 +121,12 @@ signing {
 // disable signing of snapshots
 tasks.withType<Sign>().configureEach {
 	onlyIf { rootProject.hasProperty( "release" ) }
+}
+
+// check whether parallel build is enabled
+tasks.withType<AbstractPublishToMaven>().configureEach {
+	doFirst {
+		if( System.getProperty( "org.gradle.parallel" ) == "true" )
+			throw RuntimeException( "Publishing does not work correctly with enabled parallel build. Disable parallel build with VM option '-Dorg.gradle.parallel=false'." )
+	}
 }

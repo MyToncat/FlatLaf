@@ -46,6 +46,7 @@ import java.util.IdentityHashMap;
 import java.util.WeakHashMap;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -59,6 +60,7 @@ import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.UIResource;
+import javax.swing.tree.DefaultTreeCellEditor;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.FlatLaf;
@@ -122,6 +124,25 @@ public class FlatUIUtils
 		dest.right = src.right;
 	}
 
+	/** @since 3.5 */
+	public static boolean isInsetsEmpty( Insets insets ) {
+		return insets.top == 0 && insets.left == 0 && insets.bottom == 0 && insets.right == 0;
+	}
+
+	/** @since 3.6 */
+	public static Color stateColor( boolean state, Color stateColor, Color defaultColor ) {
+		return (state && stateColor != null) ? stateColor : defaultColor;
+	}
+
+	/** @since 3.6 */
+	public static Color stateColor( boolean state1, Color state1Color,
+		boolean state2, Color state2Color, Color defaultColor )
+	{
+		return (state1 && state1Color != null)
+			? state1Color
+			: ((state2 && state2Color != null) ? state2Color : defaultColor);
+	}
+
 	public static Color getUIColor( String key, int defaultColorRGB ) {
 		Color color = UIManager.getColor( key );
 		return (color != null) ? color : new Color( defaultColorRGB );
@@ -166,6 +187,88 @@ public class FlatUIUtils
 		return defaultValue;
 	}
 
+	/** @since 3.2 */
+	public static Color getSubUIColor( String key, String subKey ) {
+		if( subKey != null ) {
+			Color value = UIManager.getColor( buildSubKey( key, subKey ) );
+			if( value != null )
+				return value;
+		}
+		return UIManager.getColor( key );
+	}
+
+	/** @since 3.2 */
+	public static boolean getSubUIBoolean( String key, String subKey, boolean defaultValue ) {
+		if( subKey != null ) {
+			Object value = UIManager.get( buildSubKey( key, subKey ) );
+			if( value instanceof Boolean )
+				return (Boolean) value;
+		}
+		return getUIBoolean( key, defaultValue );
+	}
+
+	/** @since 3.2 */
+	public static int getSubUIInt( String key, String subKey, int defaultValue ) {
+		if( subKey != null ) {
+			Object value = UIManager.get( buildSubKey( key, subKey ) );
+			if( value instanceof Integer )
+				return (Integer) value;
+		}
+		return getUIInt( key, defaultValue );
+	}
+
+	/** @since 3.2 */
+	public static Insets getSubUIInsets( String key, String subKey ) {
+		if( subKey != null ) {
+			Insets value = UIManager.getInsets( buildSubKey( key, subKey ) );
+			if( value != null )
+				return value;
+		}
+		return UIManager.getInsets( key );
+	}
+
+	/** @since 3.2 */
+	public static Dimension getSubUIDimension( String key, String subKey ) {
+		if( subKey != null ) {
+			Dimension value = UIManager.getDimension( buildSubKey( key, subKey ) );
+			if( value != null )
+				return value;
+		}
+		return UIManager.getDimension( key );
+	}
+
+	/** @since 3.2 */
+	public static Icon getSubUIIcon( String key, String subKey ) {
+		if( subKey != null ) {
+			Icon value = UIManager.getIcon( buildSubKey( key, subKey ) );
+			if( value != null )
+				return value;
+		}
+		return UIManager.getIcon( key );
+	}
+
+	/** @since 3.2 */
+	public static Font getSubUIFont( String key, String subKey ) {
+		if( subKey != null ) {
+			Font value = UIManager.getFont( buildSubKey( key, subKey ) );
+			if( value != null )
+				return value;
+		}
+		return UIManager.getFont( key );
+	}
+
+	/**
+	 * Inserts {@code subKey} at last dot in {@code key}.
+	 * <p>
+	 * E.g. {@code buildSubKey( "TitlePane.font", "small" )} returns {@code "TitlePane.small.font"}.
+	 */
+	private static String buildSubKey( String key, String subKey ) {
+		int dot = key.lastIndexOf( '.' );
+		return (dot >= 0)
+			? key.substring( 0, dot ) + '.' + subKey + '.' + key.substring( dot + 1 )
+			: key;
+	}
+
 	/** @since 1.1.2 */
 	public static boolean getBoolean( JComponent c, String systemPropertyKey,
 		String clientPropertyKey, String uiKey, boolean defaultValue )
@@ -200,6 +303,10 @@ public class FlatUIUtils
 		return (border instanceof UIResource) ? new NonUIResourceBorder( border ) : border;
 	}
 
+	static Border unwrapNonUIResourceBorder( Border border ) {
+		return (border instanceof NonUIResourceBorder) ? ((NonUIResourceBorder)border).delegate : border;
+	}
+
 	public static int minimumWidth( JComponent c, int minimumWidth ) {
 		return FlatClientProperties.clientPropertyInt( c, FlatClientProperties.MINIMUM_WIDTH, minimumWidth );
 	}
@@ -212,15 +319,14 @@ public class FlatUIUtils
 		if( c == null )
 			return false;
 
-		// check whether used in cell editor (check 3 levels up)
-		Component c2 = c;
-		for( int i = 0; i <= 2 && c2 != null; i++ ) {
-			Container parent = c2.getParent();
-			if( parent instanceof JTable && ((JTable)parent).getEditorComponent() == c2 )
-				return true;
+		// check whether used as table cell editor
+		Container parent = c.getParent();
+		if( parent instanceof JTable && ((JTable)parent).getEditorComponent() == c )
+			return true;
 
-			c2 = parent;
-		}
+		// check whether used as tree cell editor
+		if( parent instanceof DefaultTreeCellEditor.EditorContainer )
+			return true;
 
 		// check whether used as cell editor
 		//   Table.editor is set in JTable.GenericEditor constructor
@@ -515,27 +621,54 @@ public class FlatUIUtils
 		float focusWidth, float focusWidthFraction, float focusInnerWidth, float borderWidth, float arc,
 		Paint focusColor, Paint borderColor, Paint background )
 	{
+		paintOutlinedComponent( g, x, y, width, height, focusWidth, focusWidthFraction, focusInnerWidth,
+			borderWidth, arc, focusColor, borderColor, background, false );
+	}
+
+	static void paintOutlinedComponent( Graphics2D g, int x, int y, int width, int height,
+		float focusWidth, float focusWidthFraction, float focusInnerWidth, float borderWidth, float arc,
+		Paint focusColor, Paint borderColor, Paint background, boolean scrollPane )
+	{
 		double systemScaleFactor = UIScale.getSystemScaleFactor( g );
-		if( systemScaleFactor != 1 && systemScaleFactor != 2 ) {
+		if( (int) systemScaleFactor != systemScaleFactor ) {
 			// paint at scale 1x to avoid clipping on right and bottom edges at 125%, 150% or 175%
 			HiDPIUtils.paintAtScale1x( g, x, y, width, height,
 				(g2d, x2, y2, width2, height2, scaleFactor) -> {
 					paintOutlinedComponentImpl( g2d, x2, y2, width2, height2,
 						(float) (focusWidth * scaleFactor), focusWidthFraction, (float) (focusInnerWidth * scaleFactor),
 						(float) (borderWidth * scaleFactor), (float) (arc * scaleFactor),
-						focusColor, borderColor, background );
+						focusColor, borderColor, background, scrollPane, scaleFactor );
 				} );
 			return;
 		}
 
 		paintOutlinedComponentImpl( g, x, y, width, height, focusWidth, focusWidthFraction, focusInnerWidth,
-			borderWidth, arc, focusColor, borderColor, background );
+			borderWidth, arc, focusColor, borderColor, background, scrollPane, systemScaleFactor );
 	}
 
+	@SuppressWarnings( "SelfAssignment" ) // Error Prone
 	private static void paintOutlinedComponentImpl( Graphics2D g, int x, int y, int width, int height,
 		float focusWidth, float focusWidthFraction, float focusInnerWidth, float borderWidth, float arc,
-		Paint focusColor, Paint borderColor, Paint background )
+		Paint focusColor, Paint borderColor, Paint background, boolean scrollPane, double scaleFactor )
 	{
+		// Special handling for scrollpane and fractional scale factors (e.g. 1.25 - 1.75),
+		// where Swing scales one "logical" pixel (border insets) to either one or two physical pixels.
+		// Antialiasing is used to paint the border, which usually needs two physical pixels
+		// at small scale factors. 1px for the solid border and another 1px for antialiasing.
+		// But scrollpane view is painted over the border, which results in a painted border
+		// that is 1px thick at some sides and 2px thick at other sides.
+		if( scrollPane && scaleFactor != (int) scaleFactor ) {
+			if( focusWidth > 0 ) {
+				// reduce outer border thickness (focusWidth) so that inner side of
+				// component border (focusWidth + borderWidth) is at a full pixel
+				int totalWidth = (int) (focusWidth + borderWidth);
+				focusWidth = totalWidth - borderWidth;
+			} else {// if( scaleFactor > 1 && scaleFactor < 2 ) {
+				// reduce component border thickness (borderWidth) to full pixels
+				borderWidth = (int) borderWidth;
+			}
+		}
+
 		// outside bounds of the border and the background
 		float x1 = x + focusWidth;
 		float y1 = y + focusWidth;
@@ -647,7 +780,7 @@ public class FlatUIUtils
 	}
 
 	/**
-	 * Creates a (rounded) rectangle used to paint components (border, background, etc).
+	 * Creates a (rounded) rectangle used to paint components (border, background, etc.).
 	 * The given arc diameter is limited to min(width,height).
 	 */
 	public static Shape createComponentRectangle( float x, float y, float w, float h, float arc ) {
@@ -693,7 +826,7 @@ public class FlatUIUtils
 
 		if( arcTopLeft > 0 || arcTopRight > 0 || arcBottomLeft > 0 || arcBottomRight > 0 ) {
 			double systemScaleFactor = UIScale.getSystemScaleFactor( g );
-			if( systemScaleFactor != 1 && systemScaleFactor != 2 ) {
+			if( systemScaleFactor != (int) systemScaleFactor ) {
 				// paint at scale 1x to avoid clipping on right and bottom edges at 125%, 150% or 175%
 				HiDPIUtils.paintAtScale1x( g, x, y, width, height,
 					(g2d, x2, y2, width2, height2, scaleFactor) -> {
@@ -721,7 +854,7 @@ public class FlatUIUtils
 	{
 		dotSize = UIScale.scale( dotSize );
 		gap = UIScale.scale( gap );
-		int gripSize = (dotSize * dotCount) + ((gap * (dotCount - 1)));
+		int gripSize = (dotSize * dotCount) + (gap * (dotCount - 1));
 
 		// calculate grip position
 		float gx;
@@ -1228,13 +1361,13 @@ debug*/
 		@Override
 		public void focusGained( FocusEvent e ) {
 			if( repaintCondition == null || repaintCondition.test( repaintComponent ) )
-				repaintComponent.repaint();
+				HiDPIUtils.repaint( repaintComponent );
 		}
 
 		@Override
 		public void focusLost( FocusEvent e ) {
 			if( repaintCondition == null || repaintCondition.test( repaintComponent ) )
-				repaintComponent.repaint();
+				HiDPIUtils.repaint( repaintComponent );
 		}
 	}
 

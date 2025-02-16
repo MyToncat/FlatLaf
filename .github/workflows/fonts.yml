@@ -13,6 +13,8 @@ on:
             - 'flatlaf-fonts/**'
             - '.github/workflows/fonts.yml'
             - 'gradle/wrapper/gradle-wrapper.properties'
+            - '!**.md'
+            - '!**/.settings/**'
 
 jobs:
     Fonts:
@@ -22,6 +24,7 @@ jobs:
                     - inter
                     - jetbrains-mono
                     - roboto
+                    - roboto-mono
 
         runs-on: ubuntu-latest
         if: |
@@ -29,13 +32,13 @@ jobs:
             github.repository == 'JFormDesigner/FlatLaf'
 
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
 
             - name: Setup Java 11
-              uses: actions/setup-java@v3
+              uses: actions/setup-java@v4
               with:
                   java-version: 11
-                  distribution: adopt  # pre-installed on ubuntu-latest
+                  distribution: temurin  # pre-installed on ubuntu-latest
                   cache: gradle
 
             - name: Build with Gradle

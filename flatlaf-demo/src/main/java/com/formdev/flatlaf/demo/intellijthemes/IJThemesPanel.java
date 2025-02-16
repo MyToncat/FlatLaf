@@ -32,6 +32,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -44,6 +45,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.event.*;
+import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatDarculaLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
@@ -82,14 +84,13 @@ public class IJThemesPanel
 
 	private File lastDirectory;
 	private boolean isAdjustingThemesList;
+	private long lastLafChangeTime = System.currentTimeMillis();
 
 	public IJThemesPanel() {
 		initComponents();
 
 		saveButton.setEnabled( false );
 		sourceCodeButton.setEnabled( false );
-		saveButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/download.svg" ) );
-		sourceCodeButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/github.svg" ) );
 
 		// create renderer
 		themesList.setCellRenderer( new DefaultListCellRenderer() {
@@ -178,18 +179,18 @@ public class IJThemesPanel
 		// add core themes at beginning
 		categories.put( themes.size(), "Core Themes" );
 		if( showLight )
-			themes.add( new IJThemeInfo( "FlatLaf Light", null, false, null, null, null, null, null, FlatLightLaf.class.getName() ) );
+			themes.add( new IJThemeInfo( "FlatLaf Light", false, FlatLightLaf.class.getName() ) );
 		if( showDark )
-			themes.add( new IJThemeInfo( "FlatLaf Dark", null, true, null, null, null, null, null, FlatDarkLaf.class.getName() ) );
+			themes.add( new IJThemeInfo( "FlatLaf Dark", true, FlatDarkLaf.class.getName() ) );
 		if( showLight )
-			themes.add( new IJThemeInfo( "FlatLaf IntelliJ", null, false, null, null, null, null, null, FlatIntelliJLaf.class.getName() ) );
+			themes.add( new IJThemeInfo( "FlatLaf IntelliJ", false, FlatIntelliJLaf.class.getName() ) );
 		if( showDark )
-			themes.add( new IJThemeInfo( "FlatLaf Darcula", null, true, null, null, null, null, null, FlatDarculaLaf.class.getName() ) );
+			themes.add( new IJThemeInfo( "FlatLaf Darcula", true, FlatDarculaLaf.class.getName() ) );
 
 		if( showLight )
-			themes.add( new IJThemeInfo( "FlatLaf macOS Light", null, false, null, null, null, null, null, FlatMacLightLaf.class.getName() ) );
+			themes.add( new IJThemeInfo( "FlatLaf macOS Light", false, FlatMacLightLaf.class.getName() ) );
 		if( showDark )
-			themes.add( new IJThemeInfo( "FlatLaf macOS Dark", null, true, null, null, null, null, null, FlatMacDarkLaf.class.getName() ) );
+			themes.add( new IJThemeInfo( "FlatLaf macOS Dark", true, FlatMacDarkLaf.class.getName() ) );
 
 		// add themes from directory
 		categories.put( themes.size(), "Current Directory" );
@@ -370,7 +371,10 @@ public class IJThemesPanel
 		if( themeInfo == null || themeInfo.resourceName == null )
 			return;
 
-		String themeUrl = (themeInfo.sourceCodeUrl + '/' + themeInfo.sourceCodePath).replace( " ", "%20" );
+		String themeUrl = themeInfo.sourceCodeUrl;
+		if( themeInfo.sourceCodePath != null )
+			themeUrl += '/' + themeInfo.sourceCodePath;
+		themeUrl = themeUrl.replace( " ", "%20" );
 		try {
 			Desktop.getDesktop().browse( new URI( themeUrl ) );
 		} catch( IOException | URISyntaxException ex ) {
@@ -409,14 +413,59 @@ public class IJThemesPanel
 	}
 
 	private void lafChanged( PropertyChangeEvent e ) {
-		if( "lookAndFeel".equals( e.getPropertyName() ) )
+		if( "lookAndFeel".equals( e.getPropertyName() ) ) {
 			selectedCurrentLookAndFeel();
+			lastLafChangeTime = System.currentTimeMillis();
+		}
 	}
 
 	private void windowActivated() {
 		// refresh themes list on window activation
 		if( themesManager.hasThemesFromDirectoryChanged() )
 			updateThemesList();
+		else {
+			// check whether core .properties files of current Laf have changed
+			// in development environment since last Laf change and reload theme
+			LookAndFeel laf = UIManager.getLookAndFeel();
+			if( laf instanceof FlatLaf ) {
+				List<Class<?>> lafClasses = new ArrayList<>();
+
+				if( laf instanceof IntelliJTheme.ThemeLaf ) {
+					boolean dark = ((FlatLaf)laf).isDark();
+					lafClasses.add( FlatLaf.class );
+					lafClasses.add( dark ? FlatDarkLaf.class : FlatLightLaf.class );
+					lafClasses.add( dark ? FlatDarculaLaf.class : FlatIntelliJLaf.class );
+					lafClasses.add( IntelliJTheme.ThemeLaf.class );
+				} else {
+					for( Class<?> lafClass = laf.getClass();
+						FlatLaf.class.isAssignableFrom( lafClass );
+						lafClass = lafClass.getSuperclass() )
+					{
+						lafClasses.add( 0, lafClass );
+					}
+				}
+
+				boolean reload = false;
+				for( Class<?> lafClass : lafClasses ) {
+					String propertiesName = '/' + lafClass.getName().replace( '.', '/' ) + ".properties";
+					URL url = lafClass.getResource( propertiesName );
+					if( url != null && "file".equals( url.getProtocol() ) ) {
+						try {
+							File file = new File( url.toURI() );
+							if( file.lastModified() > lastLafChangeTime ) {
+								reload = true;
+								break;
+							}
+						} catch( URISyntaxException ex ) {
+							// ignore
+						}
+					}
+				}
+
+				if( reload )
+					setTheme( themesList.getSelectedValue() );
+			}
+		}
 	}
 
 	private void selectedCurrentLookAndFeel() {
@@ -488,11 +537,13 @@ public class IJThemesPanel
 
 			//---- saveButton ----
 			saveButton.setToolTipText("Save .theme.json of selected IntelliJ theme to file.");
+			saveButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/download.svg"));
 			saveButton.addActionListener(e -> saveTheme());
 			toolBar.add(saveButton);
 
 			//---- sourceCodeButton ----
 			sourceCodeButton.setToolTipText("Opens the source code repository of selected IntelliJ theme in the browser.");
+			sourceCodeButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/github.svg"));
 			sourceCodeButton.addActionListener(e -> browseSourceCode());
 			toolBar.add(sourceCodeButton);
 		}
@@ -504,7 +555,7 @@ public class IJThemesPanel
 			"light",
 			"dark"
 		}));
-		filterComboBox.putClientProperty("JComponent.minimumWidth", 0);
+		filterComboBox.putClientProperty(FlatClientProperties.MINIMUM_WIDTH, 0);
 		filterComboBox.setFocusable(false);
 		filterComboBox.addActionListener(e -> filterChanged());
 		add(filterComboBox, "cell 0 0,alignx right,growx 0");

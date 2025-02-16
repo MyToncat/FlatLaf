@@ -1,12 +1,12 @@
-JFDML JFormDesigner: "7.0.4.0.360" Java: "16" encoding: "UTF-8"
+JFDML JFormDesigner: "8.3" encoding: "UTF-8"
 
 new FormModel {
 	contentType: "form/swing"
 	root: new FormRoot {
 		add( new FormContainer( "com.formdev.flatlaf.testing.FlatTestPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
 			"$layoutConstraints": "ltr,insets dialog,hidemode 3"
-			"$columnConstraints": "[fill][fill][fill][fill]"
-			"$rowConstraints": "[][][][][][]"
+			"$columnConstraints": "[fill][fill][fill][fill][fill][fill][grow,fill]"
+			"$rowConstraints": "[][][][][][][grow,fill]"
 		} ) {
 			name: "this"
 			add( new FormComponent( "javax.swing.JLabel" ) {
@@ -29,6 +29,13 @@ new FormModel {
 				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showPopupMenu", false ) )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 				"value": "cell 0 2"
+			} )
+			add( new FormComponent( "javax.swing.JButton" ) {
+				name: "showDirectPopupButton"
+				"text": "show direct move/resize popup"
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showDirectPopup", false ) )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 2 2 2 1"
 			} )
 			add( new FormComponent( "javax.swing.JButton" ) {
 				name: "showLargePopupMenuButton"
@@ -59,11 +66,26 @@ new FormModel {
 				"value": "cell 2 4"
 			} )
 			add( new FormComponent( "javax.swing.JButton" ) {
-				name: "movePopuprightButton"
+				name: "movePopupRightButton"
 				"text": "move right"
 				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "movePopupRight", false ) )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 				"value": "cell 3 4"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "countLabel"
+				"text": "Count:"
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 4 4"
+			} )
+			add( new FormComponent( "javax.swing.JSpinner" ) {
+				name: "countField"
+				"model": new javax.swing.SpinnerNumberModel {
+					minimum: 1
+					value: 1
+				}
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 5 4"
 			} )
 			add( new FormComponent( "javax.swing.JLabel" ) {
 				name: "label4"
@@ -71,9 +93,23 @@ new FormModel {
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 				"value": "cell 0 5 4 1,alignx right,growx 0"
 			} )
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class java.awt.FlowLayout ) ) {
+				name: "movingToolTipPanel"
+				"border": new javax.swing.border.LineBorder( sfield java.awt.Color red, 1, false )
+				"toolTipText": "text"
+				auxiliary() {
+					"JavaCodeGenerator.className": "MovingToolTipPanel"
+				}
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "label6"
+					"text": "moving tooltip area"
+				} )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 0 6 7 1"
+			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 0, 0 )
-			"size": new java.awt.Dimension( 490, 350 )
+			"size": new java.awt.Dimension( 700, 350 )
 		} )
 		add( new FormContainer( "javax.swing.JPopupMenu", new FormLayoutManager( class javax.swing.JPopupMenu ) ) {
 			name: "popupMenu1"
@@ -99,23 +135,6 @@ new FormModel {
 			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 5, 395 )
-		} )
-		add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
-			"$layoutConstraints": "hidemode 3"
-			"$columnConstraints": "[fill]"
-			"$rowConstraints": "[]"
-		} ) {
-			name: "popupPanel"
-			"background": new java.awt.Color( 153, 255, 153, 255 )
-			add( new FormComponent( "javax.swing.JLabel" ) {
-				name: "label3"
-				"text": "popup"
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 0"
-			} )
-		}, new FormLayoutConstraints( null ) {
-			"location": new java.awt.Point( 225, 395 )
-			"size": new java.awt.Dimension( 200, 200 )
 		} )
 		add( new FormContainer( "javax.swing.JPopupMenu", new FormLayoutManager( class javax.swing.JPopupMenu ) ) {
 			name: "popupMenu2"
@@ -201,6 +220,40 @@ new FormModel {
 			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 5, 505 )
+		} )
+		add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
+			"$layoutConstraints": "hidemode 3"
+			"$columnConstraints": "[fill][fill][fill]"
+			"$rowConstraints": "[]"
+		} ) {
+			name: "panel1"
+			auxiliary() {
+				"JavaCodeGenerator.className": "DirectPopupContent"
+			}
+			add( new FormComponent( "javax.swing.JButton" ) {
+				name: "resizeButton"
+				"text": "Resize"
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "resizePopup", false ) )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 0 0"
+			} )
+			add( new FormComponent( "javax.swing.JButton" ) {
+				name: "moveButton"
+				"text": "Move"
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "movePopup", false ) )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 1 0"
+			} )
+			add( new FormComponent( "javax.swing.JButton" ) {
+				name: "hideButton"
+				"text": "Hide"
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "hidePopup", false ) )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 2 0"
+			} )
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 180, 395 )
+			"size": new java.awt.Dimension( 270, 100 )
 		} )
 	}
 }

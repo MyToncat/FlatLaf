@@ -33,9 +33,9 @@ import java.awt.Image;
 import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
 import java.awt.Window;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.MouseEvent;
@@ -46,9 +46,9 @@ import java.awt.event.WindowEvent;
 import java.awt.geom.AffineTransform;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import javax.accessibility.AccessibleContext;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -65,6 +65,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.AbstractBorder;
 import javax.swing.border.Border;
+import javax.swing.plaf.ComponentUI;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatSystemProperties;
 import com.formdev.flatlaf.ui.FlatNativeWindowBorder.WindowTopBorder;
@@ -96,7 +97,7 @@ import com.formdev.flatlaf.util.UIScale;
  * @uiDefault TitlePane.centerTitleIfMenuBarEmbedded		boolean
  * @uiDefault TitlePane.showIconBesideTitle					boolean
  * @uiDefault TitlePane.menuBarTitleGap						int
- * @uiDefault TitlePane.menuBarResizeHeight					int
+ * @uiDefault TitlePane.menuBarTitleMinimumGap				int
  * @uiDefault TitlePane.closeIcon							Icon
  * @uiDefault TitlePane.iconifyIcon							Icon
  * @uiDefault TitlePane.maximizeIcon						Icon
@@ -107,31 +108,32 @@ import com.formdev.flatlaf.util.UIScale;
 public class FlatTitlePane
 	extends JComponent
 {
-	private static final String KEY_DEBUG_SHOW_RECTANGLES = "FlatLaf.debug.titlebar.showRectangles";
+	static final String KEY_DEBUG_SHOW_RECTANGLES = "FlatLaf.debug.titlebar.showRectangles";
+	private static final boolean isWindows_10 = SystemInfo.isWindows_10_orLater && !SystemInfo.isWindows_11_orLater;
 
-	/** @since 2.5 */ protected final Font titleFont = UIManager.getFont( "TitlePane.font" );
-	protected final Color activeBackground = UIManager.getColor( "TitlePane.background" );
-	protected final Color inactiveBackground = UIManager.getColor( "TitlePane.inactiveBackground" );
-	protected final Color activeForeground = UIManager.getColor( "TitlePane.foreground" );
-	protected final Color inactiveForeground = UIManager.getColor( "TitlePane.inactiveForeground" );
-	protected final Color embeddedForeground = UIManager.getColor( "TitlePane.embeddedForeground" );
-	protected final Color borderColor = UIManager.getColor( "TitlePane.borderColor" );
+	/** @since 2.5 */ protected final Font titleFont;
+	protected final Color activeBackground;
+	protected final Color inactiveBackground;
+	protected final Color activeForeground;
+	protected final Color inactiveForeground;
+	protected final Color embeddedForeground;
+	protected final Color borderColor;
 
-	/** @since 2 */ protected final boolean showIcon = FlatUIUtils.getUIBoolean( "TitlePane.showIcon", true );
-	/** @since 2.5 */ protected final boolean showIconInDialogs = FlatUIUtils.getUIBoolean( "TitlePane.showIconInDialogs", true );
-	/** @since 2 */ protected final int noIconLeftGap = FlatUIUtils.getUIInt( "TitlePane.noIconLeftGap", 8 );
-	protected final Dimension iconSize = UIManager.getDimension( "TitlePane.iconSize" );
-	/** @since 2.4 */ protected final int titleMinimumWidth = FlatUIUtils.getUIInt( "TitlePane.titleMinimumWidth", 60 );
-	/** @since 2.4 */ protected final int buttonMinimumWidth = FlatUIUtils.getUIInt( "TitlePane.buttonMinimumWidth", 30 );
-	protected final int buttonMaximizedHeight = UIManager.getInt( "TitlePane.buttonMaximizedHeight" );
-	protected final boolean centerTitle = UIManager.getBoolean( "TitlePane.centerTitle" );
-	protected final boolean centerTitleIfMenuBarEmbedded = FlatUIUtils.getUIBoolean( "TitlePane.centerTitleIfMenuBarEmbedded", true );
-	/** @since 2.4 */ protected final boolean showIconBesideTitle = UIManager.getBoolean( "TitlePane.showIconBesideTitle" );
-	protected final int menuBarTitleGap = FlatUIUtils.getUIInt( "TitlePane.menuBarTitleGap", 40 );
-	/** @since 2.4 */ protected final int menuBarTitleMinimumGap = FlatUIUtils.getUIInt( "TitlePane.menuBarTitleMinimumGap", 12 );
-	/** @since 2.4 */ protected final int menuBarResizeHeight = FlatUIUtils.getUIInt( "TitlePane.menuBarResizeHeight", 4 );
+	/** @since 2 */ protected final boolean showIcon;
+	/** @since 2.5 */ protected final boolean showIconInDialogs;
+	/** @since 2 */ protected final int noIconLeftGap;
+	protected final Dimension iconSize;
+	/** @since 2.4 */ protected final int titleMinimumWidth;
+	/** @since 2.4 */ protected final int buttonMinimumWidth;
+	protected final int buttonMaximizedHeight;
+	protected final boolean centerTitle;
+	protected final boolean centerTitleIfMenuBarEmbedded;
+	/** @since 2.4 */ protected final boolean showIconBesideTitle;
+	protected final int menuBarTitleGap;
+	/** @since 2.4 */ protected final int menuBarTitleMinimumGap;
 
 	protected final JRootPane rootPane;
+	protected final String windowStyle;
 
 	protected JPanel leftPanel;
 	protected JLabel iconLabel;
@@ -147,8 +149,62 @@ public class FlatTitlePane
 
 	private final Handler handler;
 
+	/**
+	 * This panel handles mouse events if FlatLaf window decorations are used
+	 * without native window border. E.g. on Linux.
+	 * <p>
+	 * This panel usually has same bounds as the title pane,
+	 * except if fullWindowContent mode is enabled.
+	 * <p>
+	 * This panel is not a child of the title pane.
+	 * Instead it is added by FlatRootPaneUI to the layered pane at a layer
+	 * under the title pane and under the frame content.
+	 * The separation is necessary for fullWindowContent mode, where the title pane
+	 * is layered over the frame content (for title pane buttons), but the mousePanel
+	 * needs to be layered under the frame content so that components on content pane
+	 * can receive mouse events when located in title area.
+	 */
+	final JPanel mouseLayer;
+
+	/**
+	 * This panel paint a border at the top of the window in fullWindowContent mode,
+	 * if FlatLaf window decorations are enabled.
+	 * Only used on Windows 10.
+	 * <p>
+	 * This panel is not a child of the title pane.
+	 * Instead it is added by FlatRootPaneUI to the layered pane at a layer over all other layers.
+	 */
+	final JPanel windowTopBorderLayer;
+
 	public FlatTitlePane( JRootPane rootPane ) {
 		this.rootPane = rootPane;
+
+		Window w = SwingUtilities.getWindowAncestor( rootPane );
+		String defaultWindowStyle = (w != null && w.getType() == Window.Type.UTILITY) ? WINDOW_STYLE_SMALL : null;
+		windowStyle = clientProperty( rootPane, WINDOW_STYLE, defaultWindowStyle, String.class );
+
+		titleFont = FlatUIUtils.getSubUIFont( "TitlePane.font", windowStyle );
+		activeBackground = FlatUIUtils.getSubUIColor( "TitlePane.background", windowStyle );
+		inactiveBackground = FlatUIUtils.getSubUIColor( "TitlePane.inactiveBackground", windowStyle );
+		activeForeground = FlatUIUtils.getSubUIColor( "TitlePane.foreground", windowStyle );
+		inactiveForeground = FlatUIUtils.getSubUIColor( "TitlePane.inactiveForeground", windowStyle );
+		embeddedForeground = FlatUIUtils.getSubUIColor( "TitlePane.embeddedForeground", windowStyle );
+		// not using windowStyle here because TitlePane.borderColor is also used in FlatRootPaneUI
+		borderColor = UIManager.getColor( "TitlePane.borderColor" );
+
+		showIcon = FlatUIUtils.getSubUIBoolean( "TitlePane.showIcon", windowStyle, true );
+		showIconInDialogs = FlatUIUtils.getSubUIBoolean( "TitlePane.showIconInDialogs", windowStyle, true );
+		noIconLeftGap = FlatUIUtils.getSubUIInt( "TitlePane.noIconLeftGap", windowStyle, 8 );
+		iconSize = FlatUIUtils.getSubUIDimension( "TitlePane.iconSize", windowStyle );
+		titleMinimumWidth = FlatUIUtils.getSubUIInt( "TitlePane.titleMinimumWidth", windowStyle, 60 );
+		buttonMinimumWidth = FlatUIUtils.getSubUIInt( "TitlePane.buttonMinimumWidth", windowStyle, 30 );
+		buttonMaximizedHeight = FlatUIUtils.getSubUIInt( "TitlePane.buttonMaximizedHeight", windowStyle, 0 );
+		centerTitle = FlatUIUtils.getSubUIBoolean( "TitlePane.centerTitle", windowStyle, false );
+		centerTitleIfMenuBarEmbedded = FlatUIUtils.getSubUIBoolean( "TitlePane.centerTitleIfMenuBarEmbedded", windowStyle, true );
+		showIconBesideTitle = FlatUIUtils.getSubUIBoolean( "TitlePane.showIconBesideTitle", windowStyle, false );
+		menuBarTitleGap = FlatUIUtils.getSubUIInt( "TitlePane.menuBarTitleGap", windowStyle, 40 );
+		menuBarTitleMinimumGap = FlatUIUtils.getSubUIInt( "TitlePane.menuBarTitleMinimumGap", windowStyle, 12 );
+
 
 		handler = createHandler();
 		setBorder( createTitlePaneBorder() );
@@ -156,11 +212,18 @@ public class FlatTitlePane
 		addSubComponents();
 		activeChanged( true );
 
-		addMouseListener( handler );
-		addMouseMotionListener( handler );
+		mouseLayer = new JPanel();
+		mouseLayer.setOpaque( false );
+		mouseLayer.addMouseListener( handler );
+		mouseLayer.addMouseMotionListener( handler );
 
-		// necessary for closing window with double-click on icon
-		iconLabel.addMouseListener( handler );
+		if( isWindows_10 && FlatNativeWindowBorder.isSupported() ) {
+			windowTopBorderLayer = new JPanel();
+			windowTopBorderLayer.setVisible( false );
+			windowTopBorderLayer.setOpaque( false );
+			windowTopBorderLayer.setBorder( FlatUIUtils.nonUIResource( WindowTopBorder.getInstance() ) );
+		} else
+			windowTopBorderLayer = null;
 
 		applyComponentOrientation( rootPane.getComponentOrientation() );
 	}
@@ -182,8 +245,8 @@ public class FlatTitlePane
 				setUI( new FlatTitleLabelUI() );
 			}
 		};
-		iconLabel.setBorder( new FlatEmptyBorder( UIManager.getInsets( "TitlePane.iconMargins" ) ) );
-		titleLabel.setBorder( new FlatEmptyBorder( UIManager.getInsets( "TitlePane.titleMargins" ) ) );
+		iconLabel.setBorder( new FlatEmptyBorder( FlatUIUtils.getSubUIInsets( "TitlePane.iconMargins", windowStyle ) ) );
+		titleLabel.setBorder( new FlatEmptyBorder( FlatUIUtils.getSubUIInsets( "TitlePane.titleMargins", windowStyle ) ) );
 
 		leftPanel.setLayout( new BoxLayout( leftPanel, BoxLayout.LINE_AXIS ) );
 		leftPanel.setOpaque( false );
@@ -203,6 +266,11 @@ public class FlatTitlePane
 		setLayout( new BorderLayout() {
 			@Override
 			public void layoutContainer( Container target ) {
+				if( isFullWindowContent() ) {
+					super.layoutContainer( target );
+					return;
+				}
+
 				// compute available bounds
 				Insets insets = target.getInsets();
 				int x = insets.left;
@@ -216,7 +284,7 @@ public class FlatTitlePane
 				int titleWidth = w - leftWidth - buttonsWidth;
 				int minTitleWidth = UIScale.scale( titleMinimumWidth );
 
-				// increase minimum width if icon is show besides the title
+				// increase minimum width if icon is shown besides the title
 				Icon icon = titleLabel.getIcon();
 				if( icon != null ) {
 					Insets iconInsets = iconLabel.getInsets();
@@ -264,6 +332,9 @@ public class FlatTitlePane
 							horizontalGlue.getWidth(), titleLabel.getHeight() );
 					}
 				}
+
+				// clear hit-test cache
+				lastCaptionHitTestTime = 0;
 			}
 		} );
 
@@ -287,6 +358,10 @@ public class FlatTitlePane
 			@Override
 			public Dimension getPreferredSize() {
 				Dimension size = super.getPreferredSize();
+				int titleBarHeight = clientPropertyInt( rootPane, TITLE_BAR_HEIGHT, -1 );
+				if( titleBarHeight >= 0 )
+					return new Dimension( size.width, UIScale.scale( titleBarHeight ) );
+
 				if( buttonMaximizedHeight > 0 && isWindowMaximized() && !hasVisibleEmbeddedMenuBar( rootPane.getJMenuBar() ) ) {
 					// make title pane height smaller when frame is maximized
 					size = new Dimension( size.width, Math.min( size.height, UIScale.scale( buttonMaximizedHeight ) ) );
@@ -307,14 +382,27 @@ public class FlatTitlePane
 			buttonPanel.add( restoreButton );
 		}
 		buttonPanel.add( closeButton );
+
+		ComponentListener l = new ComponentAdapter() {
+			@Override public void componentResized( ComponentEvent e ) { updateFullWindowContentButtonsBoundsProperty(); }
+			@Override public void componentMoved( ComponentEvent e ) { updateFullWindowContentButtonsBoundsProperty(); }
+		};
+		buttonPanel.addComponentListener( l );
+		addComponentListener( l );
 	}
 
 	protected JButton createButton( String iconKey, String accessibleName, ActionListener action ) {
-		JButton button = new JButton( UIManager.getIcon( iconKey ) ) {
+		JButton button = new JButton( FlatUIUtils.getSubUIIcon( iconKey, windowStyle ) ) {
 			@Override
 			public Dimension getMinimumSize() {
 				// allow the button to shrink if space is rare
 				return new Dimension( UIScale.scale( buttonMinimumWidth ), super.getMinimumSize().height );
+			}
+			@Override
+			public Dimension getMaximumSize() {
+				// allow the button to fill whole button area height
+				// see also BasicMenuUI.getMaximumSize()
+				return new Dimension( super.getMaximumSize().width, Short.MAX_VALUE );
 			}
 		};
 		button.setFocusable( false );
@@ -360,9 +448,8 @@ public class FlatTitlePane
 
 		if( window instanceof Frame ) {
 			Frame frame = (Frame) window;
-			boolean maximized = ((frame.getExtendedState() & Frame.MAXIMIZED_BOTH) != 0);
 
-			if( maximized &&
+			if( isWindowMaximized() &&
 				!(SystemInfo.isLinux && FlatNativeLinuxLibrary.isWMUtilsSupported( window )) &&
 				rootPane.getClientProperty( "_flatlaf.maximizedBoundsUpToDate" ) == null )
 			{
@@ -387,13 +474,15 @@ public class FlatTitlePane
 
 	/** @since 3 */
 	protected void updateVisibility() {
-		titleLabel.setVisible( clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_TITLE, true ) );
+		boolean isFullWindowContent = isFullWindowContent();
+		leftPanel.setVisible( !isFullWindowContent );
+		titleLabel.setVisible( clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_TITLE, true ) && !isFullWindowContent );
 		closeButton.setVisible( clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_CLOSE, true ) );
 
 		if( window instanceof Frame ) {
 			Frame frame = (Frame) window;
 			boolean maximizable = frame.isResizable() && clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_MAXIMIZE, true );
-			boolean maximized = ((frame.getExtendedState() & Frame.MAXIMIZED_BOTH) != 0);
+			boolean maximized = isWindowMaximized();
 
 			iconifyButton.setVisible( clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_ICONIFFY, true ) );
 			maximizeButton.setVisible( maximizable && !maximized );
@@ -413,7 +502,7 @@ public class FlatTitlePane
 
 		// get window images
 		List<Image> images = null;
-		if( clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_ICON, defaultShowIcon ) ) {
+		if( clientPropertyBoolean( rootPane, TITLE_BAR_SHOW_ICON, defaultShowIcon ) && !isFullWindowContent() ) {
 			images = window.getIconImages();
 			if( images.isEmpty() ) {
 				// search in owners
@@ -436,6 +525,13 @@ public class FlatTitlePane
 		leftPanel.setBorder( hasIcon && !showIconBesideTitle ? null : FlatUIUtils.nonUIResource( new FlatEmptyBorder( 0, noIconLeftGap, 0, 0 ) ) );
 
 		updateNativeTitleBarHeightAndHitTestSpotsLater();
+	}
+
+	void updateFullWindowContentButtonsBoundsProperty() {
+		Rectangle bounds = isFullWindowContent()
+			? new Rectangle( SwingUtilities.convertPoint( buttonPanel, 0, 0, rootPane ), buttonPanel.getSize() )
+			: null;
+		rootPane.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_BOUNDS, bounds );
 	}
 
 	@Override
@@ -492,6 +588,11 @@ public class FlatTitlePane
 		window.removeComponentListener( handler );
 	}
 
+	/** @since 3.4 */
+	protected boolean isFullWindowContent() {
+		return FlatRootPaneUI.isFullWindowContent( rootPane );
+	}
+
 	/**
 	 * Returns whether this title pane currently has a visible and embedded menubar.
 	 */
@@ -503,6 +604,9 @@ public class FlatTitlePane
 	 * Returns whether the menubar should be embedded into the title pane.
 	 */
 	protected boolean isMenuBarEmbedded() {
+		if( isFullWindowContent() )
+			return false;
+
 		// not storing value of "TitlePane.menuBarEmbedded" in class to allow changing at runtime
 		return FlatUIUtils.getBoolean( rootPane,
 			FlatSystemProperties.MENUBAR_EMBEDDED,
@@ -578,6 +682,10 @@ public class FlatTitlePane
 		doLayout();
 	}
 
+	void menuBarInvalidate() {
+		menuBarPlaceholder.invalidate();
+	}
+
 	@Override
 	public void paint( Graphics g ) {
 		super.paint( g );
@@ -586,21 +694,45 @@ public class FlatTitlePane
 			return;
 
 		if( debugTitleBarHeight > 0 ) {
+			// title bar height is measured from window top edge
+			int y = SwingUtilities.convertPoint( window, 0, debugTitleBarHeight, this ).y;
 			g.setColor( Color.green );
-			g.drawLine( 0, debugTitleBarHeight, getWidth(), debugTitleBarHeight );
+			g.drawLine( 0, y, getWidth(), y );
 		}
-		if( debugHitTestSpots != null ) {
-			for( Rectangle r : debugHitTestSpots )
-				paintRect( g, Color.red, r );
-		}
-		paintRect( g, Color.cyan, debugCloseButtonBounds );
-		paintRect( g, Color.blue, debugAppIconBounds );
-		paintRect( g, Color.blue, debugMinimizeButtonBounds );
-		paintRect( g, Color.magenta, debugMaximizeButtonBounds );
-		paintRect( g, Color.cyan, debugCloseButtonBounds );
+
+		g.setColor( Color.red );
+		debugPaintComponentWithMouseListener( g, Color.red, rootPane.getLayeredPane(), 0, 0 );
+
+		debugPaintRect( g, Color.blue, debugAppIconBounds );
+		debugPaintRect( g, Color.blue, debugMinimizeButtonBounds );
+		debugPaintRect( g, Color.magenta, debugMaximizeButtonBounds );
+		debugPaintRect( g, Color.cyan, debugCloseButtonBounds );
 	}
 
-	private void paintRect( Graphics g, Color color, Rectangle r ) {
+	private void debugPaintComponentWithMouseListener( Graphics g, Color color, Component c, int x, int y ) {
+		if( !c.isDisplayable() || !c.isVisible() || c == mouseLayer ||
+			c == iconifyButton || c == maximizeButton || c == restoreButton || c == closeButton )
+		  return;
+
+		if( c.getMouseListeners().length > 0 ||
+			c.getMouseMotionListeners().length > 0 ||
+			c.getMouseWheelListeners().length > 0 )
+		{
+			g.drawRect( x, y, c.getWidth(), c.getHeight() );
+			return;
+		}
+
+		if( c instanceof Container ) {
+			Rectangle titlePaneBoundsOnWindow = SwingUtilities.convertRectangle( this, new Rectangle( getSize() ), window );
+			for( Component child : ((Container)c).getComponents() ) {
+				Rectangle compBoundsOnWindow = SwingUtilities.convertRectangle( c, new Rectangle( c.getSize() ), window );
+				if( compBoundsOnWindow.intersects( titlePaneBoundsOnWindow ) )
+					debugPaintComponentWithMouseListener( g, color, child, x + child.getX(), y + child.getY() );
+			}
+		}
+	}
+
+	private void debugPaintRect( Graphics g, Color color, Rectangle r ) {
 		if( r == null )
 			return;
 
@@ -611,22 +743,15 @@ public class FlatTitlePane
 
 	@Override
 	protected void paintComponent( Graphics g ) {
+		if( isFullWindowContent() )
+			return;
+
 		// not storing value of "TitlePane.unifiedBackground" in class to allow changing at runtime
 		g.setColor( (UIManager.getBoolean( "TitlePane.unifiedBackground" ) &&
 				clientPropertyColor( rootPane, TITLE_BAR_BACKGROUND, null ) == null)
 			? FlatUIUtils.getParentBackground( this )
 			: getBackground() );
 		g.fillRect( 0, 0, getWidth(), getHeight() );
-	}
-
-	protected void repaintWindowBorder() {
-		int width = rootPane.getWidth();
-		int height = rootPane.getHeight();
-		Insets insets = rootPane.getInsets();
-		rootPane.repaint( 0, 0, width, insets.top ); // top
-		rootPane.repaint( 0, 0, insets.left, height ); // left
-		rootPane.repaint( 0, height - insets.bottom, width, insets.bottom ); // bottom
-		rootPane.repaint( width - insets.right, 0, insets.right, height ); // right
 	}
 
 	/**
@@ -643,7 +768,10 @@ public class FlatTitlePane
 
 	/** @since 2.4 */
 	protected boolean isWindowMaximized() {
-		return window instanceof Frame && (((Frame)window).getExtendedState() & Frame.MAXIMIZED_BOTH) != 0;
+		// Windows and macOS use always MAXIMIZED_BOTH.
+		// Only Linux uses MAXIMIZED_VERT and MAXIMIZED_HORIZ (when dragging window to left or right edge).
+		// (searched jdk source code)
+		return window instanceof Frame && (((Frame)window).getExtendedState() & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH;
 	}
 
 	/**
@@ -661,8 +789,30 @@ public class FlatTitlePane
 		rootPane.putClientProperty( "_flatlaf.maximizedBoundsUpToDate", true );
 
 		// maximize window
-		if( !FlatNativeWindowBorder.showWindow( frame, FlatNativeWindowBorder.Provider.SW_MAXIMIZE ) )
-			frame.setExtendedState( frame.getExtendedState() | Frame.MAXIMIZED_BOTH );
+		if( !FlatNativeWindowBorder.showWindow( frame, FlatNativeWindowBorder.Provider.SW_MAXIMIZE ) ) {
+			int oldState = frame.getExtendedState();
+			int newState = oldState | Frame.MAXIMIZED_BOTH;
+
+			if( SystemInfo.isLinux ) {
+				// Linux supports vertical and horizontal maximization:
+				//   - dragging a window to left or right edge of screen vertically maximizes
+				//     the window to the left or right half of the screen
+				//   - don't know whether user can do horizontal maximization
+				// (Windows and macOS use only MAXIMIZED_BOTH)
+				//
+				// If a window is maximized vertically or horizontally (but not both),
+				// then Frame.setExtendedState() behaves not as expected on Linux.
+				// E.g. if window state is MAXIMIZED_VERT, calling setExtendedState(MAXIMIZED_BOTH)
+				// changes state to MAXIMIZED_HORIZ. But calling setExtendedState(MAXIMIZED_HORIZ)
+				// changes state from MAXIMIZED_VERT to MAXIMIZED_BOTH.
+				// Seems to be a bug in sun.awt.X11.XNETProtocol.requestState(),
+				// which does some strange state XOR-ing...
+				if( (oldState & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_VERT )
+					newState = (oldState & ~Frame.MAXIMIZED_BOTH) | Frame.MAXIMIZED_HORIZ;
+			}
+
+			frame.setExtendedState( newState );
+		}
 	}
 
 	protected void updateMaximizedBounds() {
@@ -673,7 +823,8 @@ public class FlatTitlePane
 		Rectangle oldMaximizedBounds = frame.getMaximizedBounds();
 		if( !hasNativeCustomDecoration() &&
 			(oldMaximizedBounds == null ||
-			 Objects.equals( oldMaximizedBounds, rootPane.getClientProperty( "_flatlaf.maximizedBounds" ) )) )
+			 Objects.equals( oldMaximizedBounds, rootPane.getClientProperty( "_flatlaf.maximizedBounds" ) )) &&
+			window.getGraphicsConfiguration() != null )
 		{
 			GraphicsConfiguration gc = window.getGraphicsConfiguration();
 
@@ -766,8 +917,7 @@ public class FlatTitlePane
 		if( !(window instanceof Frame) || !((Frame)window).isResizable() )
 			return;
 
-		Frame frame = (Frame) window;
-		if( (frame.getExtendedState() & Frame.MAXIMIZED_BOTH) != 0 )
+		if( isWindowMaximized() )
 			restore();
 		else
 			maximize();
@@ -781,15 +931,15 @@ public class FlatTitlePane
 			window.dispatchEvent( new WindowEvent( window, WindowEvent.WINDOW_CLOSING ) );
 	}
 
-	private boolean hasJBRCustomDecoration() {
-		return window != null && JBRCustomDecorations.hasCustomDecoration( window );
-	}
-
 	/**
 	 * Returns whether windows uses native window border and has custom decorations enabled.
 	 */
 	protected boolean hasNativeCustomDecoration() {
 		return window != null && FlatNativeWindowBorder.hasCustomDecoration( window );
+	}
+
+	boolean isWindowTopBorderNeeded() {
+		return isWindows_10 && hasNativeCustomDecoration();
 	}
 
 	// used to invoke updateNativeTitleBarHeightAndHitTestSpots() only once from latest invokeLater()
@@ -812,11 +962,14 @@ public class FlatTitlePane
 			return;
 
 		int titleBarHeight = getHeight();
+		// title bar height must be measured from window top edge
+		// (when window is maximized, window y location is e.g. -11 and window top inset is 11)
+		for( Component c = this; c != window && c != null; c = c.getParent() )
+			titleBarHeight += c.getY();
 		// slightly reduce height so that component receives mouseExit events
 		if( titleBarHeight > 0 )
 			titleBarHeight--;
 
-		List<Rectangle> hitTestSpots = new ArrayList<>();
 		Rectangle appIconBounds = null;
 
 		if( !showIconBesideTitle && iconLabel.isVisible() ) {
@@ -842,10 +995,7 @@ public class FlatTitlePane
 					iconBounds.width += iconInsets.right;
 			}
 
-			if( hasJBRCustomDecoration() )
-				hitTestSpots.add( iconBounds );
-			else
-				appIconBounds = iconBounds;
+			appIconBounds = iconBounds;
 		} else if( showIconBesideTitle && titleLabel.getIcon() != null && titleLabel.getUI() instanceof FlatTitleLabelUI ) {
 			FlatTitleLabelUI ui = (FlatTitleLabelUI) titleLabel.getUI();
 
@@ -873,59 +1023,7 @@ public class FlatTitlePane
 				iconR.width += 2;
 				iconR.height += 2;
 
-				if( hasJBRCustomDecoration() )
-					hitTestSpots.add( iconR );
-				else
-					appIconBounds = iconR;
-			}
-		}
-
-		Rectangle r = getNativeHitTestSpot( buttonPanel );
-		if( r != null )
-			hitTestSpots.add( r );
-
-		JMenuBar menuBar = rootPane.getJMenuBar();
-		if( hasVisibleEmbeddedMenuBar( menuBar ) ) {
-			r = getNativeHitTestSpot( menuBar );
-			if( r != null ) {
-				// if frame is resizable and not maximized, make menu bar hit test spot smaller at top
-				// to have a small area above the menu bar to resize the window
-				if( window instanceof Frame && ((Frame)window).isResizable() && !isWindowMaximized() ) {
-					// limit to 8, because Windows does not use a larger height
-					int resizeHeight = UIScale.scale( Math.min( menuBarResizeHeight, 8 ) );
-					r.y += resizeHeight;
-					r.height -= resizeHeight;
-				}
-
-				int count = menuBar.getComponentCount();
-				for( int i = count - 1; i >= 0; i-- ) {
-					Component c = menuBar.getComponent( i );
-					if( c instanceof Box.Filler ||
-						(c instanceof JComponent && clientPropertyBoolean( (JComponent) c, COMPONENT_TITLE_BAR_CAPTION, false ) ) )
-					{
-						// If menu bar is embedded and contains a horizontal glue or caption component,
-						// then split the hit test spot so that
-						// the glue/caption component area can be used to move the window.
-
-						Point glueLocation = SwingUtilities.convertPoint( c, 0, 0, window );
-						int x2 = glueLocation.x + c.getWidth();
-						Rectangle r2;
-						if( getComponentOrientation().isLeftToRight() ) {
-							r2 = new Rectangle( x2, r.y, (r.x + r.width) - x2, r.height );
-
-							r.width = glueLocation.x - r.x;
-						} else {
-							r2 = new Rectangle( r.x, r.y, glueLocation.x - r.x, r.height );
-
-							r.width = (r.x + r.width) - x2;
-							r.x = x2;
-						}
-						if( r2.width > 0 )
-							hitTestSpots.add( r2 );
-					}
-				}
-
-				hitTestSpots.add( r );
+				appIconBounds = iconR;
 			}
 		}
 
@@ -933,11 +1031,13 @@ public class FlatTitlePane
 		Rectangle maximizeButtonBounds = boundsInWindow( maximizeButton.isVisible() ? maximizeButton : restoreButton );
 		Rectangle closeButtonBounds = boundsInWindow( closeButton );
 
+		// clear hit-test cache
+		lastCaptionHitTestTime = 0;
+
 		FlatNativeWindowBorder.setTitleBarHeightAndHitTestSpots( window, titleBarHeight,
-			hitTestSpots, appIconBounds, minimizeButtonBounds, maximizeButtonBounds, closeButtonBounds );
+			this::captionHitTest, appIconBounds, minimizeButtonBounds, maximizeButtonBounds, closeButtonBounds );
 
 		debugTitleBarHeight = titleBarHeight;
-		debugHitTestSpots = hitTestSpots;
 		debugAppIconBounds = appIconBounds;
 		debugMinimizeButtonBounds = minimizeButtonBounds;
 		debugMaximizeButtonBounds = maximizeButtonBounds;
@@ -952,18 +1052,122 @@ public class FlatTitlePane
 			: null;
 	}
 
-	protected Rectangle getNativeHitTestSpot( JComponent c ) {
-		Dimension size = c.getSize();
-		if( size.width <= 0 || size.height <= 0 )
-			return null;
+	/**
+	 * Returns whether there is a component at the given location, that processes
+	 * mouse events. E.g. buttons, menus, etc.
+	 * <p>
+	 * Note:
+	 * <ul>
+	 *   <li>This method is invoked often when mouse is moved over window title bar area
+	 *       and should therefore return quickly.
+	 *   <li>This method is invoked on 'AWT-Windows' thread (not 'AWT-EventQueue' thread)
+	 *       while processing Windows messages.
+	 *       It <b>must not</b> change any component property or layout because this could cause a dead lock.
+	 * </ul>
+	 */
+	private boolean captionHitTest( Point pt ) {
+		// Windows invokes this method every ~200ms, even if the mouse has not moved
+		long time = System.currentTimeMillis();
+		if( pt.x == lastCaptionHitTestX && pt.y == lastCaptionHitTestY && time < lastCaptionHitTestTime + 300 ) {
+			lastCaptionHitTestTime = time;
+			return lastCaptionHitTestResult;
+		}
 
-		Point location = SwingUtilities.convertPoint( c, 0, 0, window );
-		Rectangle r = new Rectangle( location, size );
-		return r;
+		// convert pt from window coordinates to layeredPane coordinates
+		Component layeredPane = rootPane.getLayeredPane();
+		int x = pt.x;
+		int y = pt.y;
+		for( Component c = layeredPane; c != window && c != null; c = c.getParent() ) {
+			x -= c.getX();
+			y -= c.getY();
+		}
+
+		lastCaptionHitTestX = pt.x;
+		lastCaptionHitTestY = pt.y;
+		lastCaptionHitTestTime = time;
+		lastCaptionHitTestResult = isTitleBarCaptionAt( layeredPane, x, y );
+		return lastCaptionHitTestResult;
 	}
 
+	private boolean isTitleBarCaptionAt( Component c, int x, int y ) {
+		if( !c.isDisplayable() || !c.isVisible() || !contains( c, x, y ) || c == mouseLayer )
+			return true; // continue checking with next component
+
+		if( c.isEnabled() &&
+			(c.getMouseListeners().length > 0 ||
+			 c.getMouseMotionListeners().length > 0) )
+		{
+			if( !(c instanceof JComponent) )
+				return false; // assume that this is not a caption because the component has mouse listeners
+
+			// check client property boolean value
+			Object caption = ((JComponent)c).getClientProperty( COMPONENT_TITLE_BAR_CAPTION );
+			if( caption instanceof Boolean )
+				return (boolean) caption;
+
+			// if component is not fully layouted, do not invoke function
+			// because it is too dangerous that the function tries to layout the component,
+			// which could cause a dead lock
+			if( !c.isValid() ) {
+				// revalidate if necessary so that it is valid when invoked again later
+				EventQueue.invokeLater( () -> {
+					Window w = SwingUtilities.windowForComponent( c );
+					if( w != null )
+						w.revalidate();
+					else
+						c.revalidate();
+				} );
+
+				return false; // assume that this is not a caption because the component has mouse listeners
+			}
+
+			if( caption instanceof Function ) {
+				// check client property function value
+				@SuppressWarnings( "unchecked" )
+				Function<Point, Boolean> hitTest = (Function<Point, Boolean>) caption;
+				Boolean result = hitTest.apply( new Point( x, y ) );
+				if( result != null )
+					return result;
+			} else {
+				// check component UI
+				ComponentUI ui = JavaCompatibility2.getUI( (JComponent) c );
+				if( !(ui instanceof TitleBarCaptionHitTest) )
+					return false; // assume that this is not a caption because the component has mouse listeners
+
+				Boolean result = ((TitleBarCaptionHitTest)ui).isTitleBarCaptionAt( x, y );
+				if( result != null )
+					return result;
+			}
+
+			// else continue checking children
+		}
+
+		// check children
+		if( c instanceof Container ) {
+			for( Component child : ((Container)c).getComponents() ) {
+				if( !isTitleBarCaptionAt( child, x - child.getX(), y - child.getY() ) )
+					return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Same as {@link Component#contains(int, int)}, but not using that method
+	 * because it may be overridden by custom components and invoke code that
+	 * tries to request AWT tree lock on 'AWT-Windows' thread.
+	 * This could freeze the application if AWT tree is already locked on 'AWT-EventQueue' thread.
+	 */
+	private boolean contains( Component c, int x, int y ) {
+		return x >= 0 && y >= 0 && x < c.getWidth() && y < c.getHeight();
+	}
+
+	private int lastCaptionHitTestX;
+	private int lastCaptionHitTestY;
+	private long lastCaptionHitTestTime;
+	private boolean lastCaptionHitTestResult;
+
 	private int debugTitleBarHeight;
-	private List<Rectangle> debugHitTestSpots;
 	private Rectangle debugAppIconBounds;
 	private Rectangle debugMinimizeButtonBounds;
 	private Rectangle debugMaximizeButtonBounds;
@@ -986,7 +1190,7 @@ public class FlatTitlePane
 			} else if( borderColor != null && (rootPane.getJMenuBar() == null || !rootPane.getJMenuBar().isVisible()) )
 				insets.bottom += UIScale.scale( 1 );
 
-			if( !SystemInfo.isWindows_11_orLater && hasNativeCustomDecoration() && !isWindowMaximized() )
+			if( isWindowTopBorderNeeded() && !isWindowMaximized() )
 				insets = FlatUIUtils.addInsets( insets, WindowTopBorder.getInstance().getBorderInsets() );
 
 			return insets;
@@ -1005,7 +1209,7 @@ public class FlatTitlePane
 				FlatUIUtils.paintFilledRectangle( g, borderColor, x, y + height - lineHeight, width, lineHeight );
 			}
 
-			if( !SystemInfo.isWindows_11_orLater && hasNativeCustomDecoration() && !isWindowMaximized() )
+			if( isWindowTopBorderNeeded() && !isWindowMaximized() && !isFullWindowContent() )
 				WindowTopBorder.getInstance().paintBorder( c, g, x, y, width, height );
 		}
 
@@ -1061,7 +1265,7 @@ public class FlatTitlePane
 				}
 			}
 
-			// compute icon width and gap (if icon is show besides the title)
+			// compute icon width and gap (if icon is shown besides the title)
 			int iconTextGap = 0;
 			int iconWidthAndGap = 0;
 			if( icon != null ) {
@@ -1070,7 +1274,7 @@ public class FlatTitlePane
 				iconWidthAndGap = icon.getIconWidth() + iconTextGap;
 			}
 
-			// layout title and icon (if show besides the title)
+			// layout title and icon (if shown besides the title)
 			String clippedText = SwingUtilities.layoutCompoundLabel( label, fontMetrics, text, icon,
 				label.getVerticalAlignment(), label.getHorizontalAlignment(),
 				label.getVerticalTextPosition(), label.getHorizontalTextPosition(),
@@ -1169,10 +1373,7 @@ public class FlatTitlePane
 			activeChanged( true );
 			updateNativeTitleBarHeightAndHitTestSpots();
 
-			if( !SystemInfo.isWindows_11_orLater && hasNativeCustomDecoration() )
-				WindowTopBorder.getInstance().repaintBorder( FlatTitlePane.this );
-
-			repaintWindowBorder();
+			repaintBorder();
 		}
 
 		@Override
@@ -1180,14 +1381,33 @@ public class FlatTitlePane
 			activeChanged( false );
 			updateNativeTitleBarHeightAndHitTestSpots();
 
-			if( !SystemInfo.isWindows_11_orLater && hasNativeCustomDecoration() )
+			repaintBorder();
+		}
+
+		private void repaintBorder() {
+			// Windows 10 top border
+			if( windowTopBorderLayer != null && windowTopBorderLayer.isShowing())
+				WindowTopBorder.getInstance().repaintBorder( windowTopBorderLayer );
+			else if( isWindowTopBorderNeeded() && !isWindowMaximized() && !isFullWindowContent() )
 				WindowTopBorder.getInstance().repaintBorder( FlatTitlePane.this );
 
-			repaintWindowBorder();
+			// Window border used for non-native window decorations
+			if( rootPane.getBorder() instanceof FlatRootPaneUI.FlatWindowBorder ) {
+				// not repainting four areas on the four sides because RepaintManager
+				// unions dirty regions, which also results in repaint of whole rootpane
+				rootPane.repaint();
+			}
 		}
 
 		@Override
 		public void windowStateChanged( WindowEvent e ) {
+/*debug
+			System.out.println( "state " + e.getOldState() + " -> " + e.getNewState() + "     "
+				+ ((e.getNewState() & Frame.MAXIMIZED_HORIZ) != 0 ? " HORIZ" : "")
+				+ ((e.getNewState() & Frame.MAXIMIZED_VERT) != 0 ? " VERT" : "")
+			);
+debug*/
+
 			frameStateChanged();
 			updateNativeTitleBarHeightAndHitTestSpots();
 		}
@@ -1195,25 +1415,12 @@ public class FlatTitlePane
 		//---- interface MouseListener ----
 
 		private Point dragOffset;
-		private boolean nativeMove;
-		private long lastSingleClickWhen;
+		private boolean linuxNativeMove;
 
 		@Override
 		public void mouseClicked( MouseEvent e ) {
-			// on Linux, when using native library, the mouse clicked event
-			// is usually not sent and maximize/restore is done in mouse pressed event
-			// this check is here for the case that a mouse clicked event comes thru for some reason
-			if( SystemInfo.isLinux && FlatNativeLinuxLibrary.isWMUtilsSupported( window ) ) {
-				// see comment in mousePressed()
-				if( lastSingleClickWhen != 0 && (e.getWhen() - lastSingleClickWhen) <= getMultiClickInterval() ) {
-					lastSingleClickWhen = 0;
-					maximizeOrRestore();
-				}
-				return;
-			}
-
 			if( e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton( e ) ) {
-				if( e.getSource() == iconLabel ) {
+				if( SwingUtilities.getDeepestComponentAt( FlatTitlePane.this, e.getX(), e.getY() ) == iconLabel ) {
 					// double-click on icon closes window
 					close();
 				} else if( !hasNativeCustomDecoration() ) {
@@ -1240,44 +1447,8 @@ public class FlatTitlePane
 			if( !SwingUtilities.isLeftMouseButton( e ) )
 				return;
 
-			dragOffset = SwingUtilities.convertPoint( FlatTitlePane.this, e.getPoint(), window );
-			nativeMove = false;
-
-			// on Linux, move or maximize/restore window
-			if( SystemInfo.isLinux && FlatNativeLinuxLibrary.isWMUtilsSupported( window ) ) {
-				// The fired Java mouse events, when doing a double-click and the first click
-				// sends a _NET_WM_MOVERESIZE message, are different for various Linux distributions:
-				//   CentOS 7      (GNOME 3.28.2, X11):   PRESSED(clickCount=1) PRESSED(clickCount=2) RELEASED(clickCount=2)
-				//   Ubuntu 20.04  (GNOME 3.36.1, X11):   PRESSED(clickCount=1) PRESSED(clickCount=2) RELEASED(clickCount=2)
-				//   Ubuntu 22.04  (GNOME 42.2, Wayland): PRESSED(clickCount=1)                       RELEASED(clickCount=1) CLICKED(clickCount=1)
-				//   Kubuntu 22.04 (KDE 5.24.4, X11):     PRESSED(clickCount=1) PRESSED(clickCount=1) RELEASED(clickCount=1)
-
-				// double-click is not always recognized in Java when using _NET_WM_MOVERESIZE message
-				int clickCount = e.getClickCount();
-				if( clickCount == 1 && lastSingleClickWhen != 0 && (e.getWhen() - lastSingleClickWhen) <= getMultiClickInterval() )
-					clickCount = 2;
-
-				switch( clickCount ) {
-					case 1:
-						// move window via _NET_WM_MOVERESIZE message
-						e.consume();
-						nativeMove = FlatNativeLinuxLibrary.moveOrResizeWindow( window, e, FlatNativeLinuxLibrary.MOVE );
-						lastSingleClickWhen = e.getWhen();
-						break;
-
-					case 2:
-						// maximize/restore on double-click
-						// also done here because no mouse clicked event is sent when using _NET_WM_MOVERESIZE message
-						lastSingleClickWhen = 0;
-						maximizeOrRestore();
-						break;
-				}
-			}
-		}
-
-		private int getMultiClickInterval() {
-			Object value = Toolkit.getDefaultToolkit().getDesktopProperty( "awt.multiClickInterval" );
-			return (value instanceof Integer) ? (Integer) value : 500;
+			dragOffset = SwingUtilities.convertPoint( mouseLayer, e.getPoint(), window );
+			linuxNativeMove = false;
 		}
 
 		@Override public void mouseReleased( MouseEvent e ) {}
@@ -1291,7 +1462,7 @@ public class FlatTitlePane
 			if( window == null || dragOffset == null )
 				return; // should newer occur
 
-			if( nativeMove )
+			if( linuxNativeMove )
 				return;
 
 			if( !SwingUtilities.isLeftMouseButton( e ) )
@@ -1299,6 +1470,13 @@ public class FlatTitlePane
 
 			if( hasNativeCustomDecoration() )
 				return; // do nothing if having native window border
+
+			// on Linux, move window using window manager
+			if( SystemInfo.isLinux && FlatNativeLinuxLibrary.isWMUtilsSupported( window ) ) {
+				linuxNativeMove = FlatNativeLinuxLibrary.moveOrResizeWindow( window, e, FlatNativeLinuxLibrary.MOVE );
+				if( linuxNativeMove )
+					return;
+			}
 
 			// restore window if it is maximized
 			if( window instanceof Frame ) {
@@ -1352,5 +1530,37 @@ public class FlatTitlePane
 
 		@Override public void componentMoved( ComponentEvent e ) {}
 		@Override public void componentHidden( ComponentEvent e ) {}
+	}
+
+	//---- interface TitleBarCaptionHitTest -----------------------------------
+
+	/**
+	 * For custom components use {@link FlatClientProperties#COMPONENT_TITLE_BAR_CAPTION}
+	 * instead of this interface.
+	 *
+	 * @since 3.4
+	 */
+	public interface TitleBarCaptionHitTest {
+		/**
+		 * Invoked for a component that is enabled and has mouse listeners,
+		 * to check whether it processes mouse input at the given x/y location.
+		 * Useful for components that do not use mouse input on whole component bounds.
+		 * E.g. a tabbed pane with a few tabs has some empty space beside the tabs
+		 * that can be used to move the window.
+		 * <p>
+		 * Note:
+		 * <ul>
+		 *   <li>This method is invoked often when mouse is moved over window title bar area
+		 *       and should therefore return quickly.
+		 *   <li>This method is invoked on 'AWT-Windows' thread (not 'AWT-EventQueue' thread)
+		 *       while processing Windows messages.
+		 *       It <b>must not</b> change any component property or layout because this could cause a dead lock.
+		 * </ul>
+		 *
+		 * @return {@code true} if the component is not interested in mouse input at the given location
+		 *         {@code false} if the component wants process mouse input at the given location
+		 *         {@code null} if the component children should be checked
+		 */
+		Boolean isTitleBarCaptionAt( int x, int y );
 	}
 }

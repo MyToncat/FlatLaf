@@ -20,6 +20,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.Font;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
@@ -30,9 +31,6 @@ import java.awt.image.ImageProducer;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.ArrayList;
@@ -71,12 +69,14 @@ import javax.swing.plaf.FontUIResource;
 import javax.swing.plaf.IconUIResource;
 import javax.swing.plaf.UIResource;
 import javax.swing.plaf.basic.BasicLookAndFeel;
+import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.text.StyleContext;
 import javax.swing.text.html.HTMLEditorKit;
 import com.formdev.flatlaf.ui.FlatNativeWindowBorder;
 import com.formdev.flatlaf.ui.FlatPopupFactory;
 import com.formdev.flatlaf.ui.FlatRootPaneUI;
 import com.formdev.flatlaf.ui.FlatUIUtils;
+import com.formdev.flatlaf.ui.JavaCompatibility2;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
 import com.formdev.flatlaf.util.FontUtils;
 import com.formdev.flatlaf.util.GrayFilter;
@@ -111,6 +111,7 @@ public abstract class FlatLaf
 	private PopupFactory oldPopupFactory;
 	private MnemonicHandler mnemonicHandler;
 	private boolean subMenuUsabilityHelperInstalled;
+	private LinuxPopupMenuCanceler linuxPopupMenuCanceler;
 
 	private Consumer<UIDefaults> postInitialization;
 	private List<Function<Object, Object>> uiDefaultsGetters;
@@ -119,6 +120,46 @@ public abstract class FlatLaf
 	private static String preferredLightFontFamily;
 	private static String preferredSemiboldFontFamily;
 	private static String preferredMonospacedFontFamily;
+
+	static {
+		// see disableWindowsD3Donscreen() for details
+		// https://github.com/JFormDesigner/FlatLaf/issues/887
+		if( SystemInfo.isWindows &&
+			System.getProperty( "sun.java2d.d3d.onscreen" ) == null &&
+			System.getProperty( "sun.java2d.d3d" ) == null &&
+			System.getProperty( "sun.java2d.noddraw" ) == null )
+		  System.setProperty( "sun.java2d.d3d.onscreen", "false" );
+	}
+
+	/**
+	 * Disable usage of Windows Direct3D (DirectX) onscreen surfaces because this may lead to
+	 * repaint issues (ghosting) on some systems (probably depending on graphics card/driver).
+	 * Problem occurs usually when a small heavy-weight popup window (menu, combobox, tooltip) is shown.
+	 * <p>
+	 * Sets system property {@code sun.java2d.d3d.onscreen} to {@code false},
+	 * but only if {@code sun.java2d.d3d.onscreen}, {@code sun.java2d.d3d}
+	 * and {@code sun.java2d.noddraw} are not yet set.
+	 * <p>
+	 * <strong>Note</strong>: Must be invoked very early before the graphics environment is created.
+	 * <p>
+	 * This method is automatically invoked when loading this class,
+	 * which is usually before the graphics environment is created.
+	 * E.g. when doing {@code FlatLightLaf.setup()} or
+	 * {@code UIManager.setLookAndFeel( "com.formdev.flatlaf.FlatLightLaf" )}.
+	 * <p>
+	 * However, it may be invoked too late if you use some methods from {@link UIManager}
+	 * of {@link GraphicsEnvironment} before setting look and feel.
+	 * E.g. {@link UIManager#put(Object, Object)}.
+	 * In that case invoke this method yourself very early.
+	 * <p>
+	 * <strong>Tip</strong>: How to find out when the graphics environment is created?
+	 * Set a breakpoint at constructor of class {@link GraphicsEnvironment} and look at the stack.
+	 *
+	 * @since 3.5.2
+	 */
+	public static void disableWindowsD3Donscreen() {
+		// dummy method used to trigger invocation of "static {...}" block
+	}
 
 	/**
 	 * Sets the application look and feel to the given LaF
@@ -182,17 +223,11 @@ public abstract class FlatLaf
 	 * This depends on the operating system and on the used Java runtime.
 	 * <p>
 	 * This method returns {@code true} on Windows 10/11 (see exception below)
-	 * and on Linux, {@code false} otherwise.
+	 * and on Linux, otherwise returns {@code false}.
 	 * <p>
-	 * Returns also {@code false} on Windows 10/11 if:
-	 * <ul>
-	 * <li>FlatLaf native window border support is available (requires Windows 10/11)</li>
-	 * <li>running in
-	 * <a href="https://confluence.jetbrains.com/display/JBR/JetBrains+Runtime">JetBrains Runtime 11 (or later)</a>
-	 * (<a href="https://github.com/JetBrains/JetBrainsRuntime">source code on github</a>)
-	 * and JBR supports custom window decorations
-	 * </li>
-	 * </ul>
+	 * Returns also {@code false} on Windows 10/11 if
+	 * FlatLaf native window border support is available (requires Windows 10/11).
+	 * <p>
 	 * In these cases, custom decorations are enabled by the root pane.
 	 * Usage of {@link JFrame#setDefaultLookAndFeelDecorated(boolean)} or
 	 * {@link JDialog#setDefaultLookAndFeelDecorated(boolean)} is not necessary.
@@ -270,6 +305,10 @@ public abstract class FlatLaf
 
 		// install submenu usability helper
 		subMenuUsabilityHelperInstalled = SubMenuUsabilityHelper.install();
+
+		// install Linux popup menu canceler
+		if( SystemInfo.isLinux )
+			linuxPopupMenuCanceler = new LinuxPopupMenuCanceler();
 
 		// listen to desktop property changes to update UI if system font or scaling changes
 		if( SystemInfo.isWindows ) {
@@ -363,6 +402,12 @@ public abstract class FlatLaf
 			subMenuUsabilityHelperInstalled = false;
 		}
 
+		// uninstall Linux popup menu canceler
+		if( linuxPopupMenuCanceler != null ) {
+			linuxPopupMenuCanceler.uninstall();
+			linuxPopupMenuCanceler = null;
+		}
+
 		// restore default link color
 		new HTMLEditorKit().getStyleSheet().addRule( "a, address { color: blue; }" );
 		postInitialization = null;
@@ -391,7 +436,7 @@ public abstract class FlatLaf
 				Method m = UIManager.class.getMethod( "createLookAndFeel", String.class );
 				aquaLaf = (BasicLookAndFeel) m.invoke( null, "Mac OS X" );
 			} else
-				aquaLaf = (BasicLookAndFeel) Class.forName( aquaLafClassName ).getDeclaredConstructor().newInstance();
+				aquaLaf = Class.forName( aquaLafClassName ).asSubclass( BasicLookAndFeel.class ).getDeclaredConstructor().newInstance();
 		} catch( Exception ex ) {
 			LoggingFacade.INSTANCE.logSevere( "FlatLaf: Failed to initialize Aqua look and feel '" + aquaLafClassName + "'.", ex );
 			throw new IllegalStateException();
@@ -508,6 +553,9 @@ public abstract class FlatLaf
 			return UIScale.getUserScaleFactor();
 		} );
 
+		// add lazy UI delegate class loading (if necessary)
+		addLazyUIdelegateClassLoading( defaults );
+
 		if( postInitialization != null ) {
 			postInitialization.accept( defaults );
 			postInitialization = null;
@@ -543,7 +591,7 @@ public abstract class FlatLaf
 		// which can happen in applications that use some plugin system
 		// and load FlatLaf in a plugin that uses its own classloader.
 		// (e.g. Apache NetBeans)
-		if( defaults.get( "FileChooser.fileNameHeaderText" ) != null )
+		if( defaults.get( "TabbedPane.moreTabsButtonToolTipText" ) != null )
 			return;
 
 		// load FlatLaf resource bundle and add content to defaults
@@ -581,10 +629,13 @@ public abstract class FlatLaf
 		Object activeFont = new ActiveFont( null, null, -1, 0, 0, 0, 0 );
 
 		// override fonts
+		List<String> fontKeys = new ArrayList<>( 50 );
 		for( Object key : defaults.keySet() ) {
 			if( key instanceof String && (((String)key).endsWith( ".font" ) || ((String)key).endsWith( "Font" )) )
-				defaults.put( key, activeFont );
+				fontKeys.add( (String) key );
 		}
+		for( String key : fontKeys )
+			defaults.put( key, activeFont );
 
 		// add fonts that are not set in BasicLookAndFeel
 		defaults.put( "RootPane.font", activeFont );
@@ -700,6 +751,53 @@ public abstract class FlatLaf
 			if( c.light == !dark || c.dark == dark )
 				defaults.put( c.key, new ColorUIResource( c.rgb ) );
 		}
+	}
+
+	/**
+	 * Handle UI delegate classes if running in special application where multiple class loaders are involved.
+	 * E.g. in Eclipse plugin or in LibreOffice extension.
+	 * <p>
+	 * Problem: Swing runs in Java's system classloader and FlatLaf is loaded in plugin classloader.
+	 * When Swing tries to load UI delegate class in {@link UIDefaults#getUIClass(String, ClassLoader)},
+	 * invoked from {@link UIDefaults#getUI(JComponent)}, it uses the component's classloader,
+	 * which is Java's system classloader for core Swing components,
+	 * and can not find FlatLaf UI delegates.
+	 * <p>
+	 * Solution: Add lazy values for UI delegate class names.
+	 * Those lazy values use FlatLaf classloader to load UI delegate class.
+	 * This is similar to what {@link UIDefaults#getUIClass(String, ClassLoader)} does.
+	 * <p>
+	 * Not using {@code defaults.put( "ClassLoader", FlatLaf.class.getClassLoader() )},
+	 * which would work for FlatLaf UI delegates, but it would break custom
+	 * UI delegates used in other classloaders.
+	 */
+	private static void addLazyUIdelegateClassLoading( UIDefaults defaults ) {
+		if( FlatLaf.class.getClassLoader() == ClassLoader.getSystemClassLoader() )
+			return; // not necessary
+
+		Map<String, LazyValue> map = new HashMap<>();
+		for( Map.Entry<Object, Object> e : defaults.entrySet() ) {
+			Object key = e.getKey();
+			Object value = e.getValue();
+			if( key instanceof String && ((String)key).endsWith( "UI" ) &&
+				value instanceof String && !defaults.containsKey( value ) )
+			{
+				String className = (String) value;
+				map.put( className, (LazyValue) t -> {
+					try {
+						Class<?> uiClass = FlatLaf.class.getClassLoader().loadClass( className );
+						if( ComponentUI.class.isAssignableFrom( uiClass ) )
+							return uiClass;
+					} catch( ClassNotFoundException ex ) {
+						// ignore
+					}
+
+					// let UIDefaults.getUIClass() try to load UI delegate class
+					return null;
+				} );
+			}
+		}
+		defaults.putAll( map );
 	}
 
 	private void putAATextInfo( UIDefaults defaults ) {
@@ -1291,8 +1389,8 @@ public abstract class FlatLaf
 	 * @since 2.5
 	 */
 	public static Map<String, Class<?>> getStyleableInfos( JComponent c ) {
-		StyleableUI ui = getStyleableUI( c );
-		return (ui != null) ? ui.getStyleableInfos( c ) : null;
+		ComponentUI ui = JavaCompatibility2.getUI( c );
+		return (ui instanceof StyleableUI) ? ((StyleableUI)ui).getStyleableInfos( c ) : null;
 	}
 
 	/**
@@ -1304,40 +1402,9 @@ public abstract class FlatLaf
 	 */
 	@SuppressWarnings( "unchecked" )
 	public static <T> T getStyleableValue( JComponent c, String key ) {
-		StyleableUI ui = getStyleableUI( c );
-		return (ui != null) ? (T) ui.getStyleableValue( c, key ) : null;
+		ComponentUI ui = JavaCompatibility2.getUI( c );
+		return (ui instanceof StyleableUI) ? (T) ((StyleableUI)ui).getStyleableValue( c, key ) : null;
 	}
-
-	private static StyleableUI getStyleableUI( JComponent c ) {
-		if( !getUIMethodInitialized ) {
-			getUIMethodInitialized = true;
-
-			if( SystemInfo.isJava_9_orLater ) {
-				try {
-					// JComponent.getUI() is available since Java 9
-					getUIMethod = MethodHandles.lookup().findVirtual( JComponent.class, "getUI",
-						MethodType.methodType( ComponentUI.class ) );
-				} catch( Exception ex ) {
-					// ignore
-				}
-			}
-		}
-
-		try {
-			Object ui;
-			if( getUIMethod != null )
-				ui = getUIMethod.invoke( c );
-			else
-				ui = c.getClass().getMethod( "getUI" ).invoke( c );
-			return (ui instanceof StyleableUI) ? (StyleableUI) ui : null;
-		} catch( Throwable ex ) {
-			// ignore
-			return null;
-		}
-	}
-
-	private static boolean getUIMethodInitialized;
-	private static MethodHandle getUIMethod;
 
 	/**
 	 * Returns the preferred font family to be used for (nearly) all fonts; or {@code null}.
@@ -1428,26 +1495,36 @@ public abstract class FlatLaf
 	private class FlatUIDefaults
 		extends UIDefaults
 	{
+		private UIDefaults metalDefaults;
+
 		FlatUIDefaults( int initialCapacity, float loadFactor ) {
 			super( initialCapacity, loadFactor );
 		}
 
 		@Override
 		public Object get( Object key ) {
-			Object value = getValue( key );
-			return (value != null) ? (value != NULL_VALUE ? value : null) : super.get( key );
+			return get( key, null );
 		}
 
 		@Override
 		public Object get( Object key, Locale l ) {
-			Object value = getValue( key );
-			return (value != null) ? (value != NULL_VALUE ? value : null) : super.get( key, l );
+			Object value = getFromUIDefaultsGetters( key );
+			if( value != null )
+				return (value != NULL_VALUE) ? value : null;
+
+			value = super.get( key, l );
+			if( value != null )
+				return value;
+
+			// get file chooser texts from Metal
+			return (key instanceof String && ((String)key).startsWith( "FileChooser." ))
+				? getFromMetal( (String) key, l )
+				: null;
 		}
 
-		private Object getValue( Object key ) {
+		private Object getFromUIDefaultsGetters( Object key ) {
 			// use local variable for getters to avoid potential multi-threading issues
 			List<Function<Object, Object>> uiDefaultsGetters = FlatLaf.this.uiDefaultsGetters;
-
 			if( uiDefaultsGetters == null )
 				return null;
 
@@ -1458,6 +1535,22 @@ public abstract class FlatLaf
 			}
 
 			return null;
+		}
+
+		private synchronized Object getFromMetal( String key, Locale l ) {
+			if( metalDefaults == null ) {
+				metalDefaults = new MetalLookAndFeel() {
+					// avoid unnecessary initialization
+					@Override protected void initClassDefaults( UIDefaults table ) {}
+					@Override protected void initSystemColorDefaults( UIDefaults table ) {}
+				}.getDefaults();
+
+				// empty not needed defaults (to save memory) because we're only interested
+				// in resource bundle strings, which are stored in another internal map
+				metalDefaults.clear();
+			}
+
+			return metalDefaults.get( key, l );
 		}
 	}
 
@@ -1541,7 +1634,7 @@ public abstract class FlatLaf
 			int newStyle = (style != -1)
 				? style
 				: (styleChange != 0)
-					? baseStyle & ~((styleChange >> 16) & 0xffff) | (styleChange & 0xffff)
+					? (baseStyle & ~((styleChange >> 16) & 0xffff)) | (styleChange & 0xffff)
 					: baseStyle;
 
 			// new size

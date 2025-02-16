@@ -18,6 +18,7 @@ package com.formdev.flatlaf.ui;
 
 import static com.formdev.flatlaf.util.UIScale.scale;
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -35,6 +36,7 @@ import javax.swing.plaf.basic.BasicToolBarSeparatorUI;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatStylingSupport.Styleable;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
+import com.formdev.flatlaf.util.HiDPIUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
 
 /**
@@ -130,7 +132,7 @@ public class FlatToolBarSeparatorUI
 				} else
 					installStyle( s );
 				s.revalidate();
-				s.repaint();
+				HiDPIUtils.repaint( s );
 				break;
 		}
 	}
@@ -173,6 +175,12 @@ public class FlatToolBarSeparatorUI
 		if( size != null )
 			return scale( size );
 
+		// get separator width
+		int separatorWidth = this.separatorWidth;
+		FlatToolBarUI toolBarUI = getToolBarUI( c );
+		if( toolBarUI != null && toolBarUI.separatorWidth != null )
+			separatorWidth = toolBarUI.separatorWidth;
+
 		// make sure that gap on left and right side of line have same size
 		int sepWidth = (scale( (separatorWidth - LINE_WIDTH) / 2 ) * 2) + scale( LINE_WIDTH );
 
@@ -196,6 +204,12 @@ public class FlatToolBarSeparatorUI
 		float lineWidth = scale( 1f );
 		float offset = scale( 2f );
 
+		// get separator color
+		Color separatorColor = this.separatorColor;
+		FlatToolBarUI toolBarUI = getToolBarUI( c );
+		if( toolBarUI != null && toolBarUI.separatorColor != null )
+			separatorColor = toolBarUI.separatorColor;
+
 		Object[] oldRenderingHints = FlatUIUtils.setRenderingHints( g );
 		g.setColor( separatorColor );
 
@@ -209,5 +223,12 @@ public class FlatToolBarSeparatorUI
 
 	private boolean isVertical( JComponent c ) {
 		return ((JToolBar.Separator)c).getOrientation() == SwingConstants.VERTICAL;
+	}
+
+	private FlatToolBarUI getToolBarUI( JComponent c ) {
+		Container parent = c.getParent();
+		return (parent instanceof JToolBar && ((JToolBar)parent).getUI() instanceof FlatToolBarUI)
+			? (FlatToolBarUI) ((JToolBar)parent).getUI()
+			: null;
 	}
 }

@@ -18,7 +18,7 @@
 //     For maven compatibility, <font-version> should be in format <major>.<minor>[.<micro>].
 //     <build-number> is optional and should be incremented only if a new release is
 //     necessary, but the <font-version> has not changed.
-version = "3.19"
+version = "4.0"
 
 if( !rootProject.hasProperty( "release" ) )
 	version = version.toString() + "-SNAPSHOT"
@@ -33,9 +33,8 @@ plugins {
 dependencies {
 	implementation( project( ":flatlaf-core" ) )
 
-	testImplementation( "org.junit.jupiter:junit-jupiter-api:5.7.2" )
-	testImplementation( "org.junit.jupiter:junit-jupiter-params" )
-	testRuntimeOnly( "org.junit.jupiter:junit-jupiter-engine" )
+	testImplementation( libs.junit )
+	testRuntimeOnly( libs.junit.launcher )
 }
 
 flatlafModuleInfo {
@@ -57,7 +56,7 @@ tasks {
 		testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 	}
 
-	withType<PublishToMavenRepository>().configureEach {
+	withType<AbstractPublishToMaven>().configureEach {
 		onlyIf { !rootProject.hasProperty( "skipFonts" ) }
 	}
 }
@@ -74,8 +73,8 @@ publishing {
 			pom {
 				licenses {
 					license {
-						name.set( "SIL OPEN FONT LICENSE Version 1.1" )
-						url.set( "https://choosealicense.com/licenses/ofl-1.1/" )
+						name = "SIL OPEN FONT LICENSE Version 1.1"
+						url = "https://choosealicense.com/licenses/ofl-1.1/"
 					}
 				}
 			}

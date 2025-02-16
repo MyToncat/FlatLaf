@@ -16,6 +16,7 @@
 
 package com.formdev.flatlaf.demo;
 
+import com.formdev.flatlaf.FlatClientProperties;
 import static com.formdev.flatlaf.FlatClientProperties.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
@@ -204,7 +205,7 @@ class TabsPanel
 	private void closeButtonStyleChanged() {
 		// WARNING:
 		//   Do not use this trick to style individual tabbed panes in own code.
-		//   Instead use one styling for all tabbed panes in your application.
+		//   Instead, use one styling for all tabbed panes in your application.
 		if( circleCloseButton.isSelected() ) {
 			UIManager.put( "TabbedPane.closeArc", 999 );
 			UIManager.put( "TabbedPane.closeCrossFilledSize", 5.5f );
@@ -313,6 +314,14 @@ class TabsPanel
 		putTabbedPanesClientProperty( TABBED_PANE_SHOW_TAB_SEPARATORS, showTabSeparators );
 	}
 
+	private void tabRotationChanged() {
+		String tabRotation = rotationAutoButton.isSelected() ? TABBED_PANE_TAB_ROTATION_AUTO
+			: rotationLeftButton.isSelected() ? TABBED_PANE_TAB_ROTATION_LEFT
+			: rotationRightButton.isSelected() ? TABBED_PANE_TAB_ROTATION_RIGHT
+			: null;
+		putTabbedPanesClientProperty( TABBED_PANE_TAB_ROTATION, tabRotation );
+	}
+
 	private void putTabbedPanesClientProperty( String key, Object value ) {
 		updateTabbedPanesRecur( this, tabbedPane -> tabbedPane.putClientProperty( key, value ) );
 	}
@@ -331,6 +340,8 @@ class TabsPanel
 
 	private void initComponents() {
 		// JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
+		JScrollPane tabsScrollPane = new JScrollPane();
+		ScrollablePanel panel6 = new ScrollablePanel();
 		JPanel panel1 = new JPanel();
 		JLabel tabPlacementLabel = new JLabel();
 		tabPlacementToolBar = new JToolBar();
@@ -397,344 +408,369 @@ class TabsPanel
 		scrollAsNeededSingleButton = new JToggleButton();
 		scrollAsNeededButton = new JToggleButton();
 		scrollNeverButton = new JToggleButton();
-		scrollButtonsPlacementLabel = new JLabel();
-		scrollButtonsPlacementToolBar = new JToolBar();
-		scrollBothButton = new JToggleButton();
-		scrollTrailingButton = new JToggleButton();
-		showTabSeparatorsCheckBox = new JCheckBox();
 		tabsPopupPolicyLabel = new JLabel();
 		tabsPopupPolicyToolBar = new JToolBar();
 		popupAsNeededButton = new JToggleButton();
 		popupNeverButton = new JToggleButton();
+		showTabSeparatorsCheckBox = new JCheckBox();
+		scrollButtonsPlacementLabel = new JLabel();
+		scrollButtonsPlacementToolBar = new JToolBar();
+		scrollBothButton = new JToggleButton();
+		scrollTrailingButton = new JToggleButton();
 		tabTypeLabel = new JLabel();
 		tabTypeToolBar = new JToolBar();
 		underlinedTabTypeButton = new JToggleButton();
 		cardTabTypeButton = new JToggleButton();
+		tabRotationLabel = new JLabel();
+		tabRotationToolBar = new JToolBar();
+		rotationNoneButton = new JToggleButton();
+		rotationAutoButton = new JToggleButton();
+		rotationLeftButton = new JToggleButton();
+		rotationRightButton = new JToggleButton();
 
 		//======== this ========
 		setLayout(new MigLayout(
-			"insets dialog,hidemode 3",
+			"insets 0,hidemode 3",
 			// columns
-			"[grow,fill]para" +
-			"[fill]para" +
-			"[fill]",
+			"[grow,fill]",
 			// rows
-			"[grow,fill]para" +
-			"[]" +
+			"[grow,fill]0" +
+			"[]0" +
 			"[]"));
 
-		//======== panel1 ========
+		//======== tabsScrollPane ========
 		{
-			panel1.setLayout(new MigLayout(
-				"insets 0,hidemode 3",
-				// columns
-				"[grow,fill]",
-				// rows
-				"[]" +
-				"[fill]para" +
-				"[]0" +
-				"[]" +
-				"[]para" +
-				"[]" +
-				"[]para" +
-				"[]" +
-				"[]"));
+			tabsScrollPane.setBorder(BorderFactory.createEmptyBorder());
 
-			//---- tabPlacementLabel ----
-			tabPlacementLabel.setText("Tab placement");
-			tabPlacementLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel1.add(tabPlacementLabel, "cell 0 0");
-
-			//======== tabPlacementToolBar ========
+			//======== panel6 ========
 			{
-				tabPlacementToolBar.setFloatable(false);
-				tabPlacementToolBar.setBorder(BorderFactory.createEmptyBorder());
-
-				//---- topPlacementButton ----
-				topPlacementButton.setText("top");
-				topPlacementButton.setSelected(true);
-				topPlacementButton.putClientProperty("FlatLaf.styleClass", "small");
-				topPlacementButton.addActionListener(e -> tabPlacementChanged());
-				tabPlacementToolBar.add(topPlacementButton);
-
-				//---- bottomPlacementButton ----
-				bottomPlacementButton.setText("bottom");
-				bottomPlacementButton.putClientProperty("FlatLaf.styleClass", "small");
-				bottomPlacementButton.addActionListener(e -> tabPlacementChanged());
-				tabPlacementToolBar.add(bottomPlacementButton);
-
-				//---- leftPlacementButton ----
-				leftPlacementButton.setText("left");
-				leftPlacementButton.putClientProperty("FlatLaf.styleClass", "small");
-				leftPlacementButton.addActionListener(e -> tabPlacementChanged());
-				tabPlacementToolBar.add(leftPlacementButton);
-
-				//---- rightPlacementButton ----
-				rightPlacementButton.setText("right");
-				rightPlacementButton.putClientProperty("FlatLaf.styleClass", "small");
-				rightPlacementButton.addActionListener(e -> tabPlacementChanged());
-				tabPlacementToolBar.add(rightPlacementButton);
-				tabPlacementToolBar.addSeparator();
-
-				//---- scrollButton ----
-				scrollButton.setText("scroll");
-				scrollButton.putClientProperty("FlatLaf.styleClass", "small");
-				scrollButton.addActionListener(e -> scrollChanged());
-				tabPlacementToolBar.add(scrollButton);
-
-				//---- borderButton ----
-				borderButton.setText("border");
-				borderButton.putClientProperty("FlatLaf.styleClass", "small");
-				borderButton.addActionListener(e -> borderChanged());
-				tabPlacementToolBar.add(borderButton);
-			}
-			panel1.add(tabPlacementToolBar, "cell 0 0,alignx right,growx 0");
-			panel1.add(tabPlacementTabbedPane, "cell 0 1,width 300:300,height 100:100");
-
-			//---- tabLayoutLabel ----
-			tabLayoutLabel.setText("Tab layout");
-			tabLayoutLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel1.add(tabLayoutLabel, "cell 0 2");
-
-			//======== tabLayoutToolBar ========
-			{
-				tabLayoutToolBar.setFloatable(false);
-				tabLayoutToolBar.setBorder(BorderFactory.createEmptyBorder());
-
-				//---- scrollTabLayoutButton ----
-				scrollTabLayoutButton.setText("scroll");
-				scrollTabLayoutButton.setSelected(true);
-				scrollTabLayoutButton.putClientProperty("FlatLaf.styleClass", "small");
-				scrollTabLayoutButton.addActionListener(e -> tabLayoutChanged());
-				tabLayoutToolBar.add(scrollTabLayoutButton);
-
-				//---- wrapTabLayoutButton ----
-				wrapTabLayoutButton.setText("wrap");
-				wrapTabLayoutButton.putClientProperty("FlatLaf.styleClass", "small");
-				wrapTabLayoutButton.addActionListener(e -> tabLayoutChanged());
-				tabLayoutToolBar.add(wrapTabLayoutButton);
-			}
-			panel1.add(tabLayoutToolBar, "cell 0 2,alignx right,growx 0");
-
-			//---- scrollLayoutNoteLabel ----
-			scrollLayoutNoteLabel.setText("(use mouse wheel to scroll; arrow button shows hidden tabs)");
-			scrollLayoutNoteLabel.setEnabled(false);
-			scrollLayoutNoteLabel.putClientProperty("FlatLaf.styleClass", "small");
-			panel1.add(scrollLayoutNoteLabel, "cell 0 3");
-
-			//---- wrapLayoutNoteLabel ----
-			wrapLayoutNoteLabel.setText("(probably better to use scroll layout?)");
-			wrapLayoutNoteLabel.setEnabled(false);
-			wrapLayoutNoteLabel.putClientProperty("FlatLaf.styleClass", "small");
-			panel1.add(wrapLayoutNoteLabel, "cell 0 3");
-			panel1.add(scrollLayoutTabbedPane, "cell 0 4");
-			panel1.add(wrapLayoutTabbedPane, "cell 0 4,width 100:100,height pref*2px");
-
-			//---- closableTabsLabel ----
-			closableTabsLabel.setText("Closable tabs");
-			closableTabsLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel1.add(closableTabsLabel, "cell 0 5");
-
-			//======== closableTabsToolBar ========
-			{
-				closableTabsToolBar.setFloatable(false);
-				closableTabsToolBar.setBorder(BorderFactory.createEmptyBorder());
-
-				//---- squareCloseButton ----
-				squareCloseButton.setText("square");
-				squareCloseButton.setSelected(true);
-				squareCloseButton.putClientProperty("FlatLaf.styleClass", "small");
-				squareCloseButton.addActionListener(e -> closeButtonStyleChanged());
-				closableTabsToolBar.add(squareCloseButton);
-
-				//---- circleCloseButton ----
-				circleCloseButton.setText("circle");
-				circleCloseButton.putClientProperty("FlatLaf.styleClass", "small");
-				circleCloseButton.addActionListener(e -> closeButtonStyleChanged());
-				closableTabsToolBar.add(circleCloseButton);
-
-				//---- redCrossCloseButton ----
-				redCrossCloseButton.setText("red cross");
-				redCrossCloseButton.putClientProperty("FlatLaf.styleClass", "small");
-				redCrossCloseButton.addActionListener(e -> closeButtonStyleChanged());
-				closableTabsToolBar.add(redCrossCloseButton);
-			}
-			panel1.add(closableTabsToolBar, "cell 0 5,alignx right,growx 0");
-			panel1.add(closableTabsTabbedPane, "cell 0 6");
-
-			//---- tabAreaComponentsLabel ----
-			tabAreaComponentsLabel.setText("Custom tab area components");
-			tabAreaComponentsLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel1.add(tabAreaComponentsLabel, "cell 0 7");
-
-			//======== tabAreaComponentsToolBar ========
-			{
-				tabAreaComponentsToolBar.setFloatable(false);
-				tabAreaComponentsToolBar.setBorder(BorderFactory.createEmptyBorder());
-
-				//---- leadingComponentButton ----
-				leadingComponentButton.setText("leading");
-				leadingComponentButton.setSelected(true);
-				leadingComponentButton.putClientProperty("FlatLaf.styleClass", "small");
-				leadingComponentButton.addActionListener(e -> customComponentsChanged());
-				tabAreaComponentsToolBar.add(leadingComponentButton);
-
-				//---- trailingComponentButton ----
-				trailingComponentButton.setText("trailing");
-				trailingComponentButton.setSelected(true);
-				trailingComponentButton.putClientProperty("FlatLaf.styleClass", "small");
-				trailingComponentButton.addActionListener(e -> customComponentsChanged());
-				tabAreaComponentsToolBar.add(trailingComponentButton);
-			}
-			panel1.add(tabAreaComponentsToolBar, "cell 0 7,alignx right,growx 0");
-			panel1.add(customComponentsTabbedPane, "cell 0 8");
-		}
-		add(panel1, "cell 0 0");
-
-		//======== panel2 ========
-		{
-			panel2.setLayout(new MigLayout(
-				"insets 0,hidemode 3",
-				// columns
-				"[grow,fill]",
-				// rows
-				"[]0" +
-				"[]" +
-				"[fill]" +
-				"[center]" +
-				"[center]" +
-				"[center]para" +
-				"[center]0" +
-				"[]" +
-				"[center]" +
-				"[center]" +
-				"[center]" +
-				"[]"));
-
-			//---- tabIconPlacementLabel ----
-			tabIconPlacementLabel.setText("Tab icon placement");
-			tabIconPlacementLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel2.add(tabIconPlacementLabel, "cell 0 0");
-
-			//---- tabIconPlacementNodeLabel ----
-			tabIconPlacementNodeLabel.setText("(top/bottom/leading/trailing)");
-			tabIconPlacementNodeLabel.setEnabled(false);
-			tabIconPlacementNodeLabel.putClientProperty("FlatLaf.styleClass", "small");
-			panel2.add(tabIconPlacementNodeLabel, "cell 0 1");
-			panel2.add(iconTopTabbedPane, "cell 0 2");
-			panel2.add(iconBottomTabbedPane, "cell 0 3");
-			panel2.add(iconLeadingTabbedPane, "cell 0 4");
-			panel2.add(iconTrailingTabbedPane, "cell 0 5");
-
-			//---- tabAreaAlignmentLabel ----
-			tabAreaAlignmentLabel.setText("Tab area alignment");
-			tabAreaAlignmentLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel2.add(tabAreaAlignmentLabel, "cell 0 6");
-
-			//---- tabAreaAlignmentNoteLabel ----
-			tabAreaAlignmentNoteLabel.setText("(leading/center/trailing/fill)");
-			tabAreaAlignmentNoteLabel.setEnabled(false);
-			tabAreaAlignmentNoteLabel.putClientProperty("FlatLaf.styleClass", "small");
-			panel2.add(tabAreaAlignmentNoteLabel, "cell 0 7");
-			panel2.add(alignLeadingTabbedPane, "cell 0 8");
-			panel2.add(alignCenterTabbedPane, "cell 0 9");
-			panel2.add(alignTrailingTabbedPane, "cell 0 10");
-			panel2.add(alignFillTabbedPane, "cell 0 11");
-		}
-		add(panel2, "cell 1 0,growy");
-
-		//======== panel3 ========
-		{
-			panel3.setLayout(new MigLayout(
-				"insets 0,hidemode 3",
-				// columns
-				"[grow,fill]",
-				// rows
-				"[]0" +
-				"[]" +
-				"[]" +
-				"[]" +
-				"[]para" +
-				"[]" +
-				"[]" +
-				"[]para" +
-				"[]0" +
-				"[]"));
-
-			//---- tabWidthModeLabel ----
-			tabWidthModeLabel.setText("Tab width mode");
-			tabWidthModeLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel3.add(tabWidthModeLabel, "cell 0 0");
-
-			//---- tabWidthModeNoteLabel ----
-			tabWidthModeNoteLabel.setText("(preferred/equal/compact)");
-			tabWidthModeNoteLabel.setEnabled(false);
-			tabWidthModeNoteLabel.putClientProperty("FlatLaf.styleClass", "small");
-			panel3.add(tabWidthModeNoteLabel, "cell 0 1");
-			panel3.add(widthPreferredTabbedPane, "cell 0 2");
-			panel3.add(widthEqualTabbedPane, "cell 0 3");
-			panel3.add(widthCompactTabbedPane, "cell 0 4");
-
-			//---- minMaxTabWidthLabel ----
-			minMaxTabWidthLabel.setText("Minimum/maximum tab width");
-			minMaxTabWidthLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel3.add(minMaxTabWidthLabel, "cell 0 5");
-			panel3.add(minimumTabWidthTabbedPane, "cell 0 6");
-			panel3.add(maximumTabWidthTabbedPane, "cell 0 7");
-
-			//---- tabAlignmentLabel ----
-			tabAlignmentLabel.setText("Tab title alignment");
-			tabAlignmentLabel.putClientProperty("FlatLaf.styleClass", "h3");
-			panel3.add(tabAlignmentLabel, "cell 0 8");
-
-			//======== panel5 ========
-			{
-				panel5.setLayout(new MigLayout(
-					"insets 0,hidemode 3",
+				panel6.setLayout(new MigLayout(
+					"insets dialog,hidemode 3",
 					// columns
 					"[grow,fill]para" +
+					"[fill]para" +
 					"[fill]",
 					// rows
-					"[]" +
-					"[]" +
-					"[]" +
-					"[]"));
+					"[grow,fill]"));
 
-				//---- tabAlignmentNoteLabel ----
-				tabAlignmentNoteLabel.setText("(leading/center/trailing)");
-				tabAlignmentNoteLabel.setEnabled(false);
-				tabAlignmentNoteLabel.putClientProperty("FlatLaf.styleClass", "small");
-				panel5.add(tabAlignmentNoteLabel, "cell 0 0");
-
-				//---- tabAlignmentNoteLabel2 ----
-				tabAlignmentNoteLabel2.setText("(trailing)");
-				tabAlignmentNoteLabel2.setEnabled(false);
-				tabAlignmentNoteLabel2.putClientProperty("FlatLaf.styleClass", "small");
-				panel5.add(tabAlignmentNoteLabel2, "cell 1 0,alignx right,growx 0");
-				panel5.add(tabAlignLeadingTabbedPane, "cell 0 1");
-
-				//======== tabAlignVerticalTabbedPane ========
+				//======== panel1 ========
 				{
-					tabAlignVerticalTabbedPane.setTabPlacement(SwingConstants.LEFT);
+					panel1.setLayout(new MigLayout(
+						"insets 0,hidemode 3",
+						// columns
+						"[grow,fill]",
+						// rows
+						"[]" +
+						"[fill]para" +
+						"[]0" +
+						"[]" +
+						"[]para" +
+						"[]" +
+						"[]para" +
+						"[]" +
+						"[]"));
+
+					//---- tabPlacementLabel ----
+					tabPlacementLabel.setText("Tab placement");
+					tabPlacementLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel1.add(tabPlacementLabel, "cell 0 0");
+
+					//======== tabPlacementToolBar ========
+					{
+						tabPlacementToolBar.setFloatable(false);
+						tabPlacementToolBar.setBorder(BorderFactory.createEmptyBorder());
+
+						//---- topPlacementButton ----
+						topPlacementButton.setText("top");
+						topPlacementButton.setSelected(true);
+						topPlacementButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						topPlacementButton.addActionListener(e -> tabPlacementChanged());
+						tabPlacementToolBar.add(topPlacementButton);
+
+						//---- bottomPlacementButton ----
+						bottomPlacementButton.setText("bottom");
+						bottomPlacementButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						bottomPlacementButton.addActionListener(e -> tabPlacementChanged());
+						tabPlacementToolBar.add(bottomPlacementButton);
+
+						//---- leftPlacementButton ----
+						leftPlacementButton.setText("left");
+						leftPlacementButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						leftPlacementButton.addActionListener(e -> tabPlacementChanged());
+						tabPlacementToolBar.add(leftPlacementButton);
+
+						//---- rightPlacementButton ----
+						rightPlacementButton.setText("right");
+						rightPlacementButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						rightPlacementButton.addActionListener(e -> tabPlacementChanged());
+						tabPlacementToolBar.add(rightPlacementButton);
+						tabPlacementToolBar.addSeparator();
+
+						//---- scrollButton ----
+						scrollButton.setText("scroll");
+						scrollButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						scrollButton.addActionListener(e -> scrollChanged());
+						tabPlacementToolBar.add(scrollButton);
+
+						//---- borderButton ----
+						borderButton.setText("border");
+						borderButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						borderButton.addActionListener(e -> borderChanged());
+						tabPlacementToolBar.add(borderButton);
+					}
+					panel1.add(tabPlacementToolBar, "cell 0 0,alignx right,growx 0");
+					panel1.add(tabPlacementTabbedPane, "cell 0 1,width 300:300,height 100:100");
+
+					//---- tabLayoutLabel ----
+					tabLayoutLabel.setText("Tab layout");
+					tabLayoutLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel1.add(tabLayoutLabel, "cell 0 2");
+
+					//======== tabLayoutToolBar ========
+					{
+						tabLayoutToolBar.setFloatable(false);
+						tabLayoutToolBar.setBorder(BorderFactory.createEmptyBorder());
+
+						//---- scrollTabLayoutButton ----
+						scrollTabLayoutButton.setText("scroll");
+						scrollTabLayoutButton.setSelected(true);
+						scrollTabLayoutButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						scrollTabLayoutButton.addActionListener(e -> tabLayoutChanged());
+						tabLayoutToolBar.add(scrollTabLayoutButton);
+
+						//---- wrapTabLayoutButton ----
+						wrapTabLayoutButton.setText("wrap");
+						wrapTabLayoutButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						wrapTabLayoutButton.addActionListener(e -> tabLayoutChanged());
+						tabLayoutToolBar.add(wrapTabLayoutButton);
+					}
+					panel1.add(tabLayoutToolBar, "cell 0 2,alignx right,growx 0");
+
+					//---- scrollLayoutNoteLabel ----
+					scrollLayoutNoteLabel.setText("(use mouse wheel to scroll; arrow button shows hidden tabs)");
+					scrollLayoutNoteLabel.setEnabled(false);
+					scrollLayoutNoteLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+					panel1.add(scrollLayoutNoteLabel, "cell 0 3");
+
+					//---- wrapLayoutNoteLabel ----
+					wrapLayoutNoteLabel.setText("(probably better to use scroll layout?)");
+					wrapLayoutNoteLabel.setEnabled(false);
+					wrapLayoutNoteLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+					panel1.add(wrapLayoutNoteLabel, "cell 0 3");
+					panel1.add(scrollLayoutTabbedPane, "cell 0 4");
+					panel1.add(wrapLayoutTabbedPane, "cell 0 4,width 100:100,height pref*2px");
+
+					//---- closableTabsLabel ----
+					closableTabsLabel.setText("Closable tabs");
+					closableTabsLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel1.add(closableTabsLabel, "cell 0 5");
+
+					//======== closableTabsToolBar ========
+					{
+						closableTabsToolBar.setFloatable(false);
+						closableTabsToolBar.setBorder(BorderFactory.createEmptyBorder());
+
+						//---- squareCloseButton ----
+						squareCloseButton.setText("square");
+						squareCloseButton.setSelected(true);
+						squareCloseButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						squareCloseButton.addActionListener(e -> closeButtonStyleChanged());
+						closableTabsToolBar.add(squareCloseButton);
+
+						//---- circleCloseButton ----
+						circleCloseButton.setText("circle");
+						circleCloseButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						circleCloseButton.addActionListener(e -> closeButtonStyleChanged());
+						closableTabsToolBar.add(circleCloseButton);
+
+						//---- redCrossCloseButton ----
+						redCrossCloseButton.setText("red cross");
+						redCrossCloseButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						redCrossCloseButton.addActionListener(e -> closeButtonStyleChanged());
+						closableTabsToolBar.add(redCrossCloseButton);
+					}
+					panel1.add(closableTabsToolBar, "cell 0 5,alignx right,growx 0");
+					panel1.add(closableTabsTabbedPane, "cell 0 6");
+
+					//---- tabAreaComponentsLabel ----
+					tabAreaComponentsLabel.setText("Custom tab area components");
+					tabAreaComponentsLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel1.add(tabAreaComponentsLabel, "cell 0 7");
+
+					//======== tabAreaComponentsToolBar ========
+					{
+						tabAreaComponentsToolBar.setFloatable(false);
+						tabAreaComponentsToolBar.setBorder(BorderFactory.createEmptyBorder());
+
+						//---- leadingComponentButton ----
+						leadingComponentButton.setText("leading");
+						leadingComponentButton.setSelected(true);
+						leadingComponentButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						leadingComponentButton.addActionListener(e -> customComponentsChanged());
+						tabAreaComponentsToolBar.add(leadingComponentButton);
+
+						//---- trailingComponentButton ----
+						trailingComponentButton.setText("trailing");
+						trailingComponentButton.setSelected(true);
+						trailingComponentButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						trailingComponentButton.addActionListener(e -> customComponentsChanged());
+						tabAreaComponentsToolBar.add(trailingComponentButton);
+					}
+					panel1.add(tabAreaComponentsToolBar, "cell 0 7,alignx right,growx 0");
+					panel1.add(customComponentsTabbedPane, "cell 0 8");
 				}
-				panel5.add(tabAlignVerticalTabbedPane, "cell 1 1 1 3,growy");
-				panel5.add(tabAlignCenterTabbedPane, "cell 0 2");
-				panel5.add(tabAlignTrailingTabbedPane, "cell 0 3");
+				panel6.add(panel1, "cell 0 0");
+
+				//======== panel2 ========
+				{
+					panel2.setLayout(new MigLayout(
+						"insets 0,hidemode 3",
+						// columns
+						"[grow,fill]",
+						// rows
+						"[]0" +
+						"[]" +
+						"[fill]" +
+						"[center]" +
+						"[center]" +
+						"[center]para" +
+						"[center]0" +
+						"[]" +
+						"[center]" +
+						"[center]" +
+						"[center]" +
+						"[]"));
+
+					//---- tabIconPlacementLabel ----
+					tabIconPlacementLabel.setText("Tab icon placement");
+					tabIconPlacementLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel2.add(tabIconPlacementLabel, "cell 0 0");
+
+					//---- tabIconPlacementNodeLabel ----
+					tabIconPlacementNodeLabel.setText("(top/bottom/leading/trailing)");
+					tabIconPlacementNodeLabel.setEnabled(false);
+					tabIconPlacementNodeLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+					panel2.add(tabIconPlacementNodeLabel, "cell 0 1");
+					panel2.add(iconTopTabbedPane, "cell 0 2");
+					panel2.add(iconBottomTabbedPane, "cell 0 3");
+					panel2.add(iconLeadingTabbedPane, "cell 0 4");
+					panel2.add(iconTrailingTabbedPane, "cell 0 5");
+
+					//---- tabAreaAlignmentLabel ----
+					tabAreaAlignmentLabel.setText("Tab area alignment");
+					tabAreaAlignmentLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel2.add(tabAreaAlignmentLabel, "cell 0 6");
+
+					//---- tabAreaAlignmentNoteLabel ----
+					tabAreaAlignmentNoteLabel.setText("(leading/center/trailing/fill)");
+					tabAreaAlignmentNoteLabel.setEnabled(false);
+					tabAreaAlignmentNoteLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+					panel2.add(tabAreaAlignmentNoteLabel, "cell 0 7");
+					panel2.add(alignLeadingTabbedPane, "cell 0 8");
+					panel2.add(alignCenterTabbedPane, "cell 0 9");
+					panel2.add(alignTrailingTabbedPane, "cell 0 10");
+					panel2.add(alignFillTabbedPane, "cell 0 11");
+				}
+				panel6.add(panel2, "cell 1 0,growy");
+
+				//======== panel3 ========
+				{
+					panel3.setLayout(new MigLayout(
+						"insets 0,hidemode 3",
+						// columns
+						"[grow,fill]",
+						// rows
+						"[]0" +
+						"[]" +
+						"[]" +
+						"[]" +
+						"[]para" +
+						"[]" +
+						"[]" +
+						"[]para" +
+						"[]0" +
+						"[]"));
+
+					//---- tabWidthModeLabel ----
+					tabWidthModeLabel.setText("Tab width mode");
+					tabWidthModeLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel3.add(tabWidthModeLabel, "cell 0 0");
+
+					//---- tabWidthModeNoteLabel ----
+					tabWidthModeNoteLabel.setText("(preferred/equal/compact)");
+					tabWidthModeNoteLabel.setEnabled(false);
+					tabWidthModeNoteLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+					panel3.add(tabWidthModeNoteLabel, "cell 0 1");
+					panel3.add(widthPreferredTabbedPane, "cell 0 2");
+					panel3.add(widthEqualTabbedPane, "cell 0 3");
+					panel3.add(widthCompactTabbedPane, "cell 0 4");
+
+					//---- minMaxTabWidthLabel ----
+					minMaxTabWidthLabel.setText("Minimum/maximum tab width");
+					minMaxTabWidthLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel3.add(minMaxTabWidthLabel, "cell 0 5");
+					panel3.add(minimumTabWidthTabbedPane, "cell 0 6");
+					panel3.add(maximumTabWidthTabbedPane, "cell 0 7");
+
+					//---- tabAlignmentLabel ----
+					tabAlignmentLabel.setText("Tab title alignment");
+					tabAlignmentLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "h3");
+					panel3.add(tabAlignmentLabel, "cell 0 8");
+
+					//======== panel5 ========
+					{
+						panel5.setLayout(new MigLayout(
+							"insets 0,hidemode 3",
+							// columns
+							"[grow,fill]para" +
+							"[fill]",
+							// rows
+							"[]" +
+							"[]" +
+							"[]" +
+							"[]" +
+							"[]"));
+
+						//---- tabAlignmentNoteLabel ----
+						tabAlignmentNoteLabel.setText("(leading/center/trailing)");
+						tabAlignmentNoteLabel.setEnabled(false);
+						tabAlignmentNoteLabel.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						panel5.add(tabAlignmentNoteLabel, "cell 0 0");
+
+						//---- tabAlignmentNoteLabel2 ----
+						tabAlignmentNoteLabel2.setText("(trailing)");
+						tabAlignmentNoteLabel2.setEnabled(false);
+						tabAlignmentNoteLabel2.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+						panel5.add(tabAlignmentNoteLabel2, "cell 1 0,alignx right,growx 0");
+						panel5.add(tabAlignLeadingTabbedPane, "cell 0 1");
+
+						//======== tabAlignVerticalTabbedPane ========
+						{
+							tabAlignVerticalTabbedPane.setTabPlacement(SwingConstants.LEFT);
+						}
+						panel5.add(tabAlignVerticalTabbedPane, "cell 1 1 1 4,growy");
+						panel5.add(tabAlignCenterTabbedPane, "cell 0 2");
+						panel5.add(tabAlignTrailingTabbedPane, "cell 0 3");
+					}
+					panel3.add(panel5, "cell 0 9");
+				}
+				panel6.add(panel3, "cell 2 0");
 			}
-			panel3.add(panel5, "cell 0 9");
+			tabsScrollPane.setViewportView(panel6);
 		}
-		add(panel3, "cell 2 0");
-		add(separator2, "cell 0 1 3 1");
+		add(tabsScrollPane, "cell 0 0");
+		add(separator2, "cell 0 1");
 
 		//======== panel4 ========
 		{
 			panel4.setLayout(new MigLayout(
-				"insets 0,hidemode 3",
+				"insets panel,hidemode 3",
 				// columns
 				"[]" +
 				"[fill]para" +
 				"[fill]" +
 				"[fill]para" +
+				"[fill]" +
 				"[fill]",
 				// rows
 				"[]" +
@@ -752,56 +788,27 @@ class TabsPanel
 				//---- scrollAsNeededSingleButton ----
 				scrollAsNeededSingleButton.setText("asNeededSingle");
 				scrollAsNeededSingleButton.setSelected(true);
-				scrollAsNeededSingleButton.putClientProperty("FlatLaf.styleClass", "small");
+				scrollAsNeededSingleButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				scrollAsNeededSingleButton.addActionListener(e -> scrollButtonsPolicyChanged());
 				scrollButtonsPolicyToolBar.add(scrollAsNeededSingleButton);
 
 				//---- scrollAsNeededButton ----
 				scrollAsNeededButton.setText("asNeeded");
-				scrollAsNeededButton.putClientProperty("FlatLaf.styleClass", "small");
+				scrollAsNeededButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				scrollAsNeededButton.addActionListener(e -> scrollButtonsPolicyChanged());
 				scrollButtonsPolicyToolBar.add(scrollAsNeededButton);
 
 				//---- scrollNeverButton ----
 				scrollNeverButton.setText("never");
-				scrollNeverButton.putClientProperty("FlatLaf.styleClass", "small");
+				scrollNeverButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				scrollNeverButton.addActionListener(e -> scrollButtonsPolicyChanged());
 				scrollButtonsPolicyToolBar.add(scrollNeverButton);
 			}
 			panel4.add(scrollButtonsPolicyToolBar, "cell 1 0");
 
-			//---- scrollButtonsPlacementLabel ----
-			scrollButtonsPlacementLabel.setText("Scroll buttons placement:");
-			panel4.add(scrollButtonsPlacementLabel, "cell 2 0");
-
-			//======== scrollButtonsPlacementToolBar ========
-			{
-				scrollButtonsPlacementToolBar.setFloatable(false);
-				scrollButtonsPlacementToolBar.setBorder(BorderFactory.createEmptyBorder());
-
-				//---- scrollBothButton ----
-				scrollBothButton.setText("both");
-				scrollBothButton.setSelected(true);
-				scrollBothButton.putClientProperty("FlatLaf.styleClass", "small");
-				scrollBothButton.addActionListener(e -> scrollButtonsPlacementChanged());
-				scrollButtonsPlacementToolBar.add(scrollBothButton);
-
-				//---- scrollTrailingButton ----
-				scrollTrailingButton.setText("trailing");
-				scrollTrailingButton.putClientProperty("FlatLaf.styleClass", "small");
-				scrollTrailingButton.addActionListener(e -> scrollButtonsPlacementChanged());
-				scrollButtonsPlacementToolBar.add(scrollTrailingButton);
-			}
-			panel4.add(scrollButtonsPlacementToolBar, "cell 3 0");
-
-			//---- showTabSeparatorsCheckBox ----
-			showTabSeparatorsCheckBox.setText("Show tab separators");
-			showTabSeparatorsCheckBox.addActionListener(e -> showTabSeparatorsChanged());
-			panel4.add(showTabSeparatorsCheckBox, "cell 4 0");
-
 			//---- tabsPopupPolicyLabel ----
 			tabsPopupPolicyLabel.setText("Tabs popup policy:");
-			panel4.add(tabsPopupPolicyLabel, "cell 0 1");
+			panel4.add(tabsPopupPolicyLabel, "cell 2 0");
 
 			//======== tabsPopupPolicyToolBar ========
 			{
@@ -811,17 +818,46 @@ class TabsPanel
 				//---- popupAsNeededButton ----
 				popupAsNeededButton.setText("asNeeded");
 				popupAsNeededButton.setSelected(true);
-				popupAsNeededButton.putClientProperty("FlatLaf.styleClass", "small");
+				popupAsNeededButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				popupAsNeededButton.addActionListener(e -> tabsPopupPolicyChanged());
 				tabsPopupPolicyToolBar.add(popupAsNeededButton);
 
 				//---- popupNeverButton ----
 				popupNeverButton.setText("never");
-				popupNeverButton.putClientProperty("FlatLaf.styleClass", "small");
+				popupNeverButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				popupNeverButton.addActionListener(e -> tabsPopupPolicyChanged());
 				tabsPopupPolicyToolBar.add(popupNeverButton);
 			}
-			panel4.add(tabsPopupPolicyToolBar, "cell 1 1");
+			panel4.add(tabsPopupPolicyToolBar, "cell 3 0");
+
+			//---- showTabSeparatorsCheckBox ----
+			showTabSeparatorsCheckBox.setText("Show tab separators");
+			showTabSeparatorsCheckBox.addActionListener(e -> showTabSeparatorsChanged());
+			panel4.add(showTabSeparatorsCheckBox, "cell 4 0 2 1,alignx left,growx 0");
+
+			//---- scrollButtonsPlacementLabel ----
+			scrollButtonsPlacementLabel.setText("Scroll buttons placement:");
+			panel4.add(scrollButtonsPlacementLabel, "cell 0 1");
+
+			//======== scrollButtonsPlacementToolBar ========
+			{
+				scrollButtonsPlacementToolBar.setFloatable(false);
+				scrollButtonsPlacementToolBar.setBorder(BorderFactory.createEmptyBorder());
+
+				//---- scrollBothButton ----
+				scrollBothButton.setText("both");
+				scrollBothButton.setSelected(true);
+				scrollBothButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+				scrollBothButton.addActionListener(e -> scrollButtonsPlacementChanged());
+				scrollButtonsPlacementToolBar.add(scrollBothButton);
+
+				//---- scrollTrailingButton ----
+				scrollTrailingButton.setText("trailing");
+				scrollTrailingButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+				scrollTrailingButton.addActionListener(e -> scrollButtonsPlacementChanged());
+				scrollButtonsPlacementToolBar.add(scrollTrailingButton);
+			}
+			panel4.add(scrollButtonsPlacementToolBar, "cell 1 1");
 
 			//---- tabTypeLabel ----
 			tabTypeLabel.setText("Tab type:");
@@ -834,19 +870,55 @@ class TabsPanel
 				//---- underlinedTabTypeButton ----
 				underlinedTabTypeButton.setText("underlined");
 				underlinedTabTypeButton.setSelected(true);
-				underlinedTabTypeButton.putClientProperty("FlatLaf.styleClass", "small");
+				underlinedTabTypeButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				underlinedTabTypeButton.addActionListener(e -> tabTypeChanged());
 				tabTypeToolBar.add(underlinedTabTypeButton);
 
 				//---- cardTabTypeButton ----
 				cardTabTypeButton.setText("card");
-				cardTabTypeButton.putClientProperty("FlatLaf.styleClass", "small");
+				cardTabTypeButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
 				cardTabTypeButton.addActionListener(e -> tabTypeChanged());
 				tabTypeToolBar.add(cardTabTypeButton);
 			}
 			panel4.add(tabTypeToolBar, "cell 3 1");
+
+			//---- tabRotationLabel ----
+			tabRotationLabel.setText("Tab rotation:");
+			panel4.add(tabRotationLabel, "cell 4 1");
+
+			//======== tabRotationToolBar ========
+			{
+				tabRotationToolBar.setFloatable(false);
+				tabRotationToolBar.setBorder(BorderFactory.createEmptyBorder());
+
+				//---- rotationNoneButton ----
+				rotationNoneButton.setText("none");
+				rotationNoneButton.setSelected(true);
+				rotationNoneButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+				rotationNoneButton.addActionListener(e -> tabRotationChanged());
+				tabRotationToolBar.add(rotationNoneButton);
+
+				//---- rotationAutoButton ----
+				rotationAutoButton.setText("auto");
+				rotationAutoButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+				rotationAutoButton.addActionListener(e -> tabRotationChanged());
+				tabRotationToolBar.add(rotationAutoButton);
+
+				//---- rotationLeftButton ----
+				rotationLeftButton.setText("left");
+				rotationLeftButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+				rotationLeftButton.addActionListener(e -> tabRotationChanged());
+				tabRotationToolBar.add(rotationLeftButton);
+
+				//---- rotationRightButton ----
+				rotationRightButton.setText("right");
+				rotationRightButton.putClientProperty(FlatClientProperties.STYLE_CLASS, "small");
+				rotationRightButton.addActionListener(e -> tabRotationChanged());
+				tabRotationToolBar.add(rotationRightButton);
+			}
+			panel4.add(tabRotationToolBar, "cell 5 1");
 		}
-		add(panel4, "cell 0 2 3 1");
+		add(panel4, "cell 0 2");
 
 		//---- tabPlacementButtonGroup ----
 		ButtonGroup tabPlacementButtonGroup = new ButtonGroup();
@@ -872,20 +944,27 @@ class TabsPanel
 		scrollButtonsPolicyButtonGroup.add(scrollAsNeededButton);
 		scrollButtonsPolicyButtonGroup.add(scrollNeverButton);
 
-		//---- scrollButtonsPlacementButtonGroup ----
-		ButtonGroup scrollButtonsPlacementButtonGroup = new ButtonGroup();
-		scrollButtonsPlacementButtonGroup.add(scrollBothButton);
-		scrollButtonsPlacementButtonGroup.add(scrollTrailingButton);
-
 		//---- tabsPopupPolicyButtonGroup ----
 		ButtonGroup tabsPopupPolicyButtonGroup = new ButtonGroup();
 		tabsPopupPolicyButtonGroup.add(popupAsNeededButton);
 		tabsPopupPolicyButtonGroup.add(popupNeverButton);
 
+		//---- scrollButtonsPlacementButtonGroup ----
+		ButtonGroup scrollButtonsPlacementButtonGroup = new ButtonGroup();
+		scrollButtonsPlacementButtonGroup.add(scrollBothButton);
+		scrollButtonsPlacementButtonGroup.add(scrollTrailingButton);
+
 		//---- tabTypeButtonGroup ----
 		ButtonGroup tabTypeButtonGroup = new ButtonGroup();
 		tabTypeButtonGroup.add(underlinedTabTypeButton);
 		tabTypeButtonGroup.add(cardTabTypeButton);
+
+		//---- tabRotationButtonGroup ----
+		ButtonGroup tabRotationButtonGroup = new ButtonGroup();
+		tabRotationButtonGroup.add(rotationNoneButton);
+		tabRotationButtonGroup.add(rotationAutoButton);
+		tabRotationButtonGroup.add(rotationLeftButton);
+		tabRotationButtonGroup.add(rotationRightButton);
 		// JFormDesigner - End of component initialization  //GEN-END:initComponents
 
 		if( FlatLafDemo.screenshotsMode ) {
@@ -961,18 +1040,24 @@ class TabsPanel
 	private JToggleButton scrollAsNeededSingleButton;
 	private JToggleButton scrollAsNeededButton;
 	private JToggleButton scrollNeverButton;
-	private JLabel scrollButtonsPlacementLabel;
-	private JToolBar scrollButtonsPlacementToolBar;
-	private JToggleButton scrollBothButton;
-	private JToggleButton scrollTrailingButton;
-	private JCheckBox showTabSeparatorsCheckBox;
 	private JLabel tabsPopupPolicyLabel;
 	private JToolBar tabsPopupPolicyToolBar;
 	private JToggleButton popupAsNeededButton;
 	private JToggleButton popupNeverButton;
+	private JCheckBox showTabSeparatorsCheckBox;
+	private JLabel scrollButtonsPlacementLabel;
+	private JToolBar scrollButtonsPlacementToolBar;
+	private JToggleButton scrollBothButton;
+	private JToggleButton scrollTrailingButton;
 	private JLabel tabTypeLabel;
 	private JToolBar tabTypeToolBar;
 	private JToggleButton underlinedTabTypeButton;
 	private JToggleButton cardTabTypeButton;
+	private JLabel tabRotationLabel;
+	private JToolBar tabRotationToolBar;
+	private JToggleButton rotationNoneButton;
+	private JToggleButton rotationAutoButton;
+	private JToggleButton rotationLeftButton;
+	private JToggleButton rotationRightButton;
 	// JFormDesigner - End of variables declaration  //GEN-END:variables
 }

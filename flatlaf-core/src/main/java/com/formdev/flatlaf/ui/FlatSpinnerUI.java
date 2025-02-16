@@ -47,6 +47,7 @@ import javax.swing.plaf.basic.BasicSpinnerUI;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatStylingSupport.Styleable;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
+import com.formdev.flatlaf.util.HiDPIUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
 
 /**
@@ -67,7 +68,6 @@ import com.formdev.flatlaf.util.LoggingFacade;
  * @uiDefault Component.minimumWidth			int
  * @uiDefault Spinner.buttonStyle				String	button (default), mac or none
  * @uiDefault Component.arrowType				String	chevron (default) or triangle
- * @uiDefault Component.isIntelliJTheme			boolean
  * @uiDefault Spinner.disabledBackground		Color
  * @uiDefault Spinner.disabledForeground		Color
  * @uiDefault Spinner.focusedBackground			Color	optional
@@ -92,7 +92,6 @@ public class FlatSpinnerUI
 	@Styleable protected int minimumWidth;
 	@Styleable protected String buttonStyle;
 	@Styleable protected String arrowType;
-	protected boolean isIntelliJTheme;
 	@Styleable protected Color disabledBackground;
 	@Styleable protected Color disabledForeground;
 	@Styleable protected Color focusedBackground;
@@ -129,7 +128,6 @@ public class FlatSpinnerUI
 		minimumWidth = UIManager.getInt( "Component.minimumWidth" );
 		buttonStyle = UIManager.getString( "Spinner.buttonStyle" );
 		arrowType = UIManager.getString( "Component.arrowType" );
-		isIntelliJTheme = UIManager.getBoolean( "Component.isIntelliJTheme" );
 		disabledBackground = UIManager.getColor( "Spinner.disabledBackground" );
 		disabledForeground = UIManager.getColor( "Spinner.disabledForeground" );
 		focusedBackground = UIManager.getColor( "Spinner.focusedBackground" );
@@ -142,8 +140,6 @@ public class FlatSpinnerUI
 		buttonHoverArrowColor = UIManager.getColor( "Spinner.buttonHoverArrowColor" );
 		buttonPressedArrowColor = UIManager.getColor( "Spinner.buttonPressedArrowColor" );
 		padding = UIManager.getInsets( "Spinner.padding" );
-
-		MigLayoutVisualPadding.install( spinner );
 	}
 
 	@Override
@@ -164,8 +160,6 @@ public class FlatSpinnerUI
 
 		oldStyleValues = null;
 		borderShared = null;
-
-		MigLayoutVisualPadding.uninstall( spinner );
 	}
 
 	@Override
@@ -175,6 +169,8 @@ public class FlatSpinnerUI
 		addEditorFocusListener( spinner.getEditor() );
 		spinner.addFocusListener( getHandler() );
 		spinner.addPropertyChangeListener( getHandler() );
+
+		MigLayoutVisualPadding.install( spinner );
 	}
 
 	@Override
@@ -186,6 +182,8 @@ public class FlatSpinnerUI
 		spinner.removePropertyChangeListener( getHandler() );
 
 		handler = null;
+
+		MigLayoutVisualPadding.uninstall( spinner );
 	}
 
 	private Handler getHandler() {
@@ -316,7 +314,7 @@ public class FlatSpinnerUI
 
 			return background;
 		} else
-			return isIntelliJTheme ? FlatUIUtils.getParentBackground( spinner ) : disabledBackground;
+			return disabledBackground;
 	}
 
 	protected Color getForeground( boolean enabled ) {
@@ -589,7 +587,7 @@ public class FlatSpinnerUI
 		@Override
 		public void focusGained( FocusEvent e ) {
 			// necessary to update focus border
-			spinner.repaint();
+			HiDPIUtils.repaint( spinner );
 
 			// if spinner gained focus, transfer it to the editor text field
 			if( e.getComponent() == spinner ) {
@@ -602,7 +600,7 @@ public class FlatSpinnerUI
 		@Override
 		public void focusLost( FocusEvent e ) {
 			// necessary to update focus border
-			spinner.repaint();
+			HiDPIUtils.repaint( spinner );
 		}
 
 		//---- interface PropertyChangeListener ----
@@ -617,7 +615,7 @@ public class FlatSpinnerUI
 
 				case FlatClientProperties.COMPONENT_ROUND_RECT:
 				case FlatClientProperties.OUTLINE:
-					spinner.repaint();
+					HiDPIUtils.repaint( spinner );
 					break;
 
 				case FlatClientProperties.MINIMUM_WIDTH:
@@ -628,7 +626,7 @@ public class FlatSpinnerUI
 				case FlatClientProperties.STYLE_CLASS:
 					installStyle();
 					spinner.revalidate();
-					spinner.repaint();
+					HiDPIUtils.repaint( spinner );
 					break;
 			}
 		}

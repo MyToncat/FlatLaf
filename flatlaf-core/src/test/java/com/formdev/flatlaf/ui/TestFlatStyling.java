@@ -29,6 +29,7 @@ import javax.swing.table.JTableHeader;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.icons.*;
 import com.formdev.flatlaf.util.ColorFunctions;
 
@@ -39,12 +40,20 @@ public class TestFlatStyling
 {
 	@BeforeAll
 	static void setup() {
+		HashMap<String, String> globalExtraDefaults = new HashMap<>();
+		globalExtraDefaults.put( "@var1", "#f00" );
+		globalExtraDefaults.put( "@var2", "@var1" );
+		globalExtraDefaults.put( "var2Resolved", "@var2" );
+		FlatLaf.setGlobalExtraDefaults( globalExtraDefaults );
+
 		TestUtils.setup( false );
 	}
 
 	@AfterAll
 	static void cleanup() {
 		TestUtils.cleanup();
+
+		FlatLaf.setGlobalExtraDefaults( null );
 	}
 
 	@Test
@@ -169,6 +178,13 @@ public class TestFlatStyling
 		testColorStyle(
 			ColorFunctions.saturate( ColorFunctions.darken( background, 0.2f ), 0.1f ).getRGB(),
 			"saturate(darken(@background,20%),10%)" );
+	}
+
+	@Test
+	void parseRecursiveVariables() {
+		Color background = UIManager.getColor( "var2Resolved" );
+
+		testColorStyle( background.getRGB(), "@var2" );
 	}
 
 	private void testColorStyle( int expectedRGB, String style ) {
@@ -396,6 +412,7 @@ public class TestFlatStyling
 		FlatLabelUI ui = (FlatLabelUI) c.getUI();
 
 		ui.applyStyle( c, "disabledForeground: #fff" );
+		ui.applyStyle( c, "arc: 8" );
 
 		// JComponent properties
 		ui.applyStyle( c, "background: #fff" );
@@ -416,6 +433,7 @@ public class TestFlatStyling
 		ui.applyStyle( "selectionForeground: #fff" );
 		ui.applyStyle( "selectionInactiveBackground: #fff" );
 		ui.applyStyle( "selectionInactiveForeground: #fff" );
+		ui.applyStyle( "alternateRowColor: #fff" );
 		ui.applyStyle( "selectionInsets: 1,2,3,4" );
 		ui.applyStyle( "selectionArc: 8" );
 
@@ -744,7 +762,7 @@ public class TestFlatStyling
 		FlatScrollPaneUI ui = (FlatScrollPaneUI) c.getUI();
 
 		// border
-		flatBorder( style -> ui.applyStyle( style ) );
+		flatScrollPaneBorder( style -> ui.applyStyle( style ) );
 
 		ui.applyStyle( "showButtons: true" );
 
@@ -854,6 +872,9 @@ public class TestFlatStyling
 		FlatSplitPaneUI ui = (FlatSplitPaneUI) c.getUI();
 
 		ui.applyStyle( "arrowType: chevron" );
+		ui.applyStyle( "draggingColor: #fff" );
+		ui.applyStyle( "hoverColor: #fff" );
+		ui.applyStyle( "pressedColor: #fff" );
 		ui.applyStyle( "oneTouchArrowColor: #fff" );
 		ui.applyStyle( "oneTouchHoverArrowColor: #fff" );
 		ui.applyStyle( "oneTouchPressedArrowColor: #fff" );
@@ -890,7 +911,9 @@ public class TestFlatStyling
 		ui.applyStyle( "inactiveUnderlineColor: #fff" );
 		ui.applyStyle( "disabledUnderlineColor: #fff" );
 		ui.applyStyle( "hoverColor: #fff" );
+		ui.applyStyle( "hoverForeground: #fff" );
 		ui.applyStyle( "focusColor: #fff" );
+		ui.applyStyle( "focusForeground: #fff" );
 		ui.applyStyle( "tabSeparatorColor: #fff" );
 		ui.applyStyle( "contentAreaColor: #fff" );
 
@@ -899,6 +922,11 @@ public class TestFlatStyling
 		ui.applyStyle( "tabHeight: 30" );
 		ui.applyStyle( "tabSelectionHeight: 3" );
 		ui.applyStyle( "cardTabSelectionHeight: 2" );
+		ui.applyStyle( "tabArc: 3" );
+		ui.applyStyle( "tabSelectionArc: 4" );
+		ui.applyStyle( "cardTabArc: 5" );
+		ui.applyStyle( "selectedInsets: 1,2,3,4" );
+		ui.applyStyle( "tabSelectionInsets: 1,2,3,4" );
 		ui.applyStyle( "contentSeparatorHeight: 1" );
 		ui.applyStyle( "showTabSeparators: false" );
 		ui.applyStyle( "tabSeparatorsFullHeight: false" );
@@ -914,6 +942,7 @@ public class TestFlatStyling
 		ui.applyStyle( "tabAreaAlignment: leading" );
 		ui.applyStyle( "tabAlignment: center" );
 		ui.applyStyle( "tabWidthMode: preferred" );
+		ui.applyStyle( "tabRotation: none" );
 
 		ui.applyStyle( "arrowType: chevron" );
 		ui.applyStyle( "buttonInsets: 1,2,3,4" );
@@ -959,6 +988,8 @@ public class TestFlatStyling
 		ui.applyStyle( "selectionForeground: #fff" );
 		ui.applyStyle( "selectionInactiveBackground: #fff" );
 		ui.applyStyle( "selectionInactiveForeground: #fff" );
+		ui.applyStyle( "selectionInsets: 1,2,3,4" );
+		ui.applyStyle( "selectionArc: 8" );
 
 		// FlatTableCellBorder
 		ui.applyStyle( "cellMargins: 1,2,3,4" );
@@ -983,6 +1014,10 @@ public class TestFlatStyling
 		JTableHeader c = new JTableHeader();
 		FlatTableHeaderUI ui = (FlatTableHeaderUI) c.getUI();
 
+		ui.applyStyle( "hoverBackground: #fff" );
+		ui.applyStyle( "hoverForeground: #fff" );
+		ui.applyStyle( "pressedBackground: #fff" );
+		ui.applyStyle( "pressedForeground: #fff" );
 		ui.applyStyle( "bottomSeparatorColor: #fff" );
 		ui.applyStyle( "height: 20" );
 		ui.applyStyle( "sortIconPosition: top" );
@@ -1119,6 +1154,9 @@ public class TestFlatStyling
 		ui.applyStyle( "borderMargins: 1,2,3,4" );
 		ui.applyStyle( "gripColor: #fff" );
 
+		ui.applyStyle( "separatorWidth: 6" );
+		ui.applyStyle( "separatorColor: #fff" );
+
 		// JComponent properties
 		ui.applyStyle( "background: #fff" );
 		ui.applyStyle( "foreground: #fff" );
@@ -1150,9 +1188,11 @@ public class TestFlatStyling
 		ui.applyStyle( "selectionInactiveBackground: #fff" );
 		ui.applyStyle( "selectionInactiveForeground: #fff" );
 		ui.applyStyle( "selectionBorderColor: #fff" );
+		ui.applyStyle( "alternateRowColor: #fff" );
 		ui.applyStyle( "selectionInsets: 1,2,3,4" );
 		ui.applyStyle( "selectionArc: 8" );
 		ui.applyStyle( "wideSelection: true" );
+		ui.applyStyle( "wideCellRenderer: true" );
 		ui.applyStyle( "showCellFocusIndicator: true" );
 
 		ui.applyStyle( "paintSelection: false" );
@@ -1207,15 +1247,19 @@ public class TestFlatStyling
 		flatBorder( applyStyle );
 
 		applyStyle.accept( "arc: 6" );
-
 		applyStyle.accept( "roundRect: true" );
+	}
+
+	private void flatScrollPaneBorder( Consumer<String> applyStyle ) {
+		flatBorder( applyStyle );
+
+		applyStyle.accept( "arc: 6" );
 	}
 
 	private void flatTextBorder( Consumer<String> applyStyle ) {
 		flatBorder( applyStyle );
 
 		applyStyle.accept( "arc: 6" );
-
 		applyStyle.accept( "roundRect: true" );
 	}
 
@@ -1256,12 +1300,20 @@ public class TestFlatStyling
 		border.applyStyleProperty( "disabledBorderColor", Color.WHITE );
 		border.applyStyleProperty( "focusedBorderColor", Color.WHITE );
 		border.applyStyleProperty( "hoverBorderColor", Color.WHITE );
+		border.applyStyleProperty( "pressedBorderColor", Color.WHITE );
+
+		border.applyStyleProperty( "selectedBorderColor", Color.WHITE );
+		border.applyStyleProperty( "disabledSelectedBorderColor", Color.WHITE );
+		border.applyStyleProperty( "focusedSelectedBorderColor", Color.WHITE );
+		border.applyStyleProperty( "hoverSelectedBorderColor", Color.WHITE );
+		border.applyStyleProperty( "pressedSelectedBorderColor", Color.WHITE );
 
 		border.applyStyleProperty( "default.borderWidth", 2 );
 		border.applyStyleProperty( "default.borderColor", Color.WHITE );
 		border.applyStyleProperty( "default.focusedBorderColor", Color.WHITE );
 		border.applyStyleProperty( "default.focusColor", Color.WHITE );
 		border.applyStyleProperty( "default.hoverBorderColor", Color.WHITE );
+		border.applyStyleProperty( "default.pressedBorderColor", Color.WHITE );
 
 		border.applyStyleProperty( "toolbar.focusWidth", 1.5f );
 		border.applyStyleProperty( "toolbar.focusColor", Color.WHITE );
@@ -1339,6 +1391,8 @@ public class TestFlatStyling
 		icon.applyStyleProperty( "borderWidth", 1.5f );
 		icon.applyStyleProperty( "selectedBorderWidth", 1.5f );
 		icon.applyStyleProperty( "disabledSelectedBorderWidth", 1.5f );
+		icon.applyStyleProperty( "indeterminateBorderWidth", 1.5f );
+		icon.applyStyleProperty( "disabledIndeterminateBorderWidth", 1.5f );
 		icon.applyStyleProperty( "arc", 5 );
 
 		// enabled
@@ -1347,6 +1401,9 @@ public class TestFlatStyling
 		icon.applyStyleProperty( "selectedBorderColor", Color.WHITE );
 		icon.applyStyleProperty( "selectedBackground", Color.WHITE );
 		icon.applyStyleProperty( "checkmarkColor", Color.WHITE );
+		icon.applyStyleProperty( "indeterminateBorderColor", Color.WHITE );
+		icon.applyStyleProperty( "indeterminateBackground", Color.WHITE );
+		icon.applyStyleProperty( "indeterminateCheckmarkColor", Color.WHITE );
 
 		// disabled
 		icon.applyStyleProperty( "disabledBorderColor", Color.WHITE );
@@ -1354,6 +1411,9 @@ public class TestFlatStyling
 		icon.applyStyleProperty( "disabledSelectedBorderColor", Color.WHITE );
 		icon.applyStyleProperty( "disabledSelectedBackground", Color.WHITE );
 		icon.applyStyleProperty( "disabledCheckmarkColor", Color.WHITE );
+		icon.applyStyleProperty( "disabledIndeterminateBorderColor", Color.WHITE );
+		icon.applyStyleProperty( "disabledIndeterminateBackground", Color.WHITE );
+		icon.applyStyleProperty( "disabledIndeterminateCheckmarkColor", Color.WHITE );
 
 		// focused
 		icon.applyStyleProperty( "focusedBorderColor", Color.WHITE );
@@ -1361,6 +1421,9 @@ public class TestFlatStyling
 		icon.applyStyleProperty( "focusedSelectedBorderColor", Color.WHITE );
 		icon.applyStyleProperty( "focusedSelectedBackground", Color.WHITE );
 		icon.applyStyleProperty( "focusedCheckmarkColor", Color.WHITE );
+		icon.applyStyleProperty( "focusedIndeterminateBorderColor", Color.WHITE );
+		icon.applyStyleProperty( "focusedIndeterminateBackground", Color.WHITE );
+		icon.applyStyleProperty( "focusedIndeterminateCheckmarkColor", Color.WHITE );
 
 		// hover
 		icon.applyStyleProperty( "hoverBorderColor", Color.WHITE );
@@ -1368,6 +1431,9 @@ public class TestFlatStyling
 		icon.applyStyleProperty( "hoverSelectedBorderColor", Color.WHITE );
 		icon.applyStyleProperty( "hoverSelectedBackground", Color.WHITE );
 		icon.applyStyleProperty( "hoverCheckmarkColor", Color.WHITE );
+		icon.applyStyleProperty( "hoverIndeterminateBorderColor", Color.WHITE );
+		icon.applyStyleProperty( "hoverIndeterminateBackground", Color.WHITE );
+		icon.applyStyleProperty( "hoverIndeterminateCheckmarkColor", Color.WHITE );
 
 		// pressed
 		icon.applyStyleProperty( "pressedBorderColor", Color.WHITE );
@@ -1375,6 +1441,9 @@ public class TestFlatStyling
 		icon.applyStyleProperty( "pressedSelectedBorderColor", Color.WHITE );
 		icon.applyStyleProperty( "pressedSelectedBackground", Color.WHITE );
 		icon.applyStyleProperty( "pressedCheckmarkColor", Color.WHITE );
+		icon.applyStyleProperty( "pressedIndeterminateBorderColor", Color.WHITE );
+		icon.applyStyleProperty( "pressedIndeterminateBackground", Color.WHITE );
+		icon.applyStyleProperty( "pressedIndeterminateCheckmarkColor", Color.WHITE );
 	}
 
 	@Test

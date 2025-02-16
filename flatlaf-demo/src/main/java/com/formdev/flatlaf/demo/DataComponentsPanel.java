@@ -18,14 +18,16 @@ package com.formdev.flatlaf.demo;
 
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.EventQueue;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import javax.swing.*;
+import javax.swing.UIDefaults.ActiveValue;
 import javax.swing.table.*;
 import javax.swing.tree.*;
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.util.ColorFunctions;
 import net.miginfocom.swing.*;
 
 /**
@@ -64,6 +66,45 @@ class DataComponentsPanel
 		tree3.putClientProperty( FlatClientProperties.STYLE, "selectionInsets: 0,1,0,1; selectionArc: 6" );
 	}
 
+	private void listAlternatingRowsChanged() {
+		ActiveValue alternateRowColor = null;
+		if( listAlternatingRowsCheckBox.isSelected() ) {
+			alternateRowColor = table -> {
+				Color background = list1.getBackground();
+				return FlatLaf.isLafDark()
+					? ColorFunctions.lighten( background, 0.05f )
+					: ColorFunctions.darken( background, 0.05f );
+			};
+		}
+		UIManager.put( "List.alternateRowColor", alternateRowColor );
+		list1.updateUI();
+		list2.updateUI();
+		list3.updateUI();
+	}
+
+	private void treeWideSelectionChanged() {
+		boolean wideSelection = treeWideSelectionCheckBox.isSelected();
+		tree1.putClientProperty( FlatClientProperties.TREE_WIDE_SELECTION, wideSelection );
+		tree2.putClientProperty( FlatClientProperties.TREE_WIDE_SELECTION, wideSelection );
+		tree3.putClientProperty( FlatClientProperties.TREE_WIDE_SELECTION, wideSelection );
+	}
+
+	private void treeAlternatingRowsChanged() {
+		ActiveValue alternateRowColor = null;
+		if( treeAlternatingRowsCheckBox.isSelected() ) {
+			alternateRowColor = table -> {
+				Color background = tree1.getBackground();
+				return FlatLaf.isLafDark()
+					? ColorFunctions.lighten( background, 0.05f )
+					: ColorFunctions.darken( background, 0.05f );
+			};
+		}
+		UIManager.put( "Tree.alternateRowColor", alternateRowColor );
+		tree1.updateUI();
+		tree2.updateUI();
+		tree3.updateUI();
+	}
+
 	private void dndChanged() {
 		boolean dnd = dndCheckBox.isSelected();
 		DropMode dropMode = dnd ? DropMode.ON_OR_INSERT : DropMode.USE_SELECTION;
@@ -94,10 +135,12 @@ class DataComponentsPanel
 
 	private void rowSelectionChanged() {
 		table1.setRowSelectionAllowed( rowSelectionCheckBox.isSelected() );
+		roundedSelectionChanged();
 	}
 
 	private void columnSelectionChanged() {
 		table1.setColumnSelectionAllowed( columnSelectionCheckBox.isSelected() );
+		roundedSelectionChanged();
 	}
 
 	private void showHorizontalLinesChanged() {
@@ -116,18 +159,43 @@ class DataComponentsPanel
 		table1.setGridColor( redGridColorCheckBox.isSelected() ? Color.red : UIManager.getColor( "Table.gridColor" ) );
 	}
 
-	@Override
-	public void updateUI() {
-		super.updateUI();
-
-		EventQueue.invokeLater( () -> {
-			showHorizontalLinesChanged();
-			showVerticalLinesChanged();
-			intercellSpacingChanged();
-		} );
+	private void showHorizontalLinesPropertyChange() {
+		showHorizontalLinesCheckBox.setSelected( table1.getShowHorizontalLines() );
 	}
 
-	@SuppressWarnings( { "unchecked", "rawtypes" } )
+	private void showVerticalLinesPropertyChange() {
+		showVerticalLinesCheckBox.setSelected( table1.getShowVerticalLines() );
+	}
+
+	private void intercellSpacingPropertyChange() {
+		intercellSpacingCheckBox.setSelected( table1.getRowMargin() != 0 );
+	}
+
+	private void roundedSelectionChanged() {
+		String style = null;
+		if( roundedSelectionCheckBox.isSelected() ) {
+			style = rowSelectionCheckBox.isSelected()
+				? "selectionArc: 6; selectionInsets: 0,1,0,1"
+				: "selectionArc: 6";
+		}
+		table1.putClientProperty( FlatClientProperties.STYLE, style );
+	}
+
+	private void alternatingRowsChanged() {
+		ActiveValue alternateRowColor = null;
+		if( alternatingRowsCheckBox.isSelected() ) {
+			alternateRowColor = table -> {
+				Color background = table1.getBackground();
+				return FlatLaf.isLafDark()
+					? ColorFunctions.lighten( background, 0.05f )
+					: ColorFunctions.darken( background, 0.05f );
+			};
+		}
+		UIManager.put( "Table.alternateRowColor", alternateRowColor );
+		table1.repaint();
+	}
+
+	@SuppressWarnings( { "rawtypes" } )
 	private void initComponents() {
 		// JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
 		JLabel label1 = new JLabel();
@@ -140,6 +208,8 @@ class DataComponentsPanel
 		list3 = new JList<>();
 		JScrollPane scrollPane2 = new JScrollPane();
 		list2 = new JList<>();
+		JPanel listOptionsPanel = new JPanel();
+		listAlternatingRowsCheckBox = new JCheckBox();
 		JLabel treeLabel = new JLabel();
 		JScrollPane scrollPane3 = new JScrollPane();
 		tree1 = new JTree();
@@ -147,16 +217,21 @@ class DataComponentsPanel
 		tree3 = new JTree();
 		JScrollPane scrollPane4 = new JScrollPane();
 		tree2 = new JTree();
+		JPanel treeOptionsPanel = new JPanel();
+		treeWideSelectionCheckBox = new JCheckBox();
+		treeAlternatingRowsCheckBox = new JCheckBox();
 		JLabel tableLabel = new JLabel();
 		JScrollPane scrollPane5 = new JScrollPane();
 		table1 = new JTable();
 		JPanel tableOptionsPanel = new JPanel();
+		roundedSelectionCheckBox = new JCheckBox();
 		showHorizontalLinesCheckBox = new JCheckBox();
 		showVerticalLinesCheckBox = new JCheckBox();
 		intercellSpacingCheckBox = new JCheckBox();
 		redGridColorCheckBox = new JCheckBox();
 		rowSelectionCheckBox = new JCheckBox();
 		columnSelectionCheckBox = new JCheckBox();
+		alternatingRowsCheckBox = new JCheckBox();
 		dndCheckBox = new JCheckBox();
 		JPopupMenu popupMenu2 = new JPopupMenu();
 		JMenuItem menuItem3 = new JMenuItem();
@@ -245,6 +320,22 @@ class DataComponentsPanel
 		}
 		add(scrollPane2, "cell 3 1");
 
+		//======== listOptionsPanel ========
+		{
+			listOptionsPanel.setLayout(new MigLayout(
+				"insets 0,hidemode 3",
+				// columns
+				"[fill]",
+				// rows
+				"[]"));
+
+			//---- listAlternatingRowsCheckBox ----
+			listAlternatingRowsCheckBox.setText("alternating rows");
+			listAlternatingRowsCheckBox.addActionListener(e -> listAlternatingRowsChanged());
+			listOptionsPanel.add(listAlternatingRowsCheckBox, "cell 0 0");
+		}
+		add(listOptionsPanel, "cell 4 1");
+
 		//---- treeLabel ----
 		treeLabel.setText("JTree:");
 		add(treeLabel, "cell 0 2,aligny top,growy 0");
@@ -306,6 +397,29 @@ class DataComponentsPanel
 		}
 		add(scrollPane4, "cell 3 2");
 
+		//======== treeOptionsPanel ========
+		{
+			treeOptionsPanel.setLayout(new MigLayout(
+				"insets 0,hidemode 3",
+				// columns
+				"[fill]",
+				// rows
+				"[]0" +
+				"[]"));
+
+			//---- treeWideSelectionCheckBox ----
+			treeWideSelectionCheckBox.setText("wide selection");
+			treeWideSelectionCheckBox.setSelected(true);
+			treeWideSelectionCheckBox.addActionListener(e -> treeWideSelectionChanged());
+			treeOptionsPanel.add(treeWideSelectionCheckBox, "cell 0 0");
+
+			//---- treeAlternatingRowsCheckBox ----
+			treeAlternatingRowsCheckBox.setText("alternating rows");
+			treeAlternatingRowsCheckBox.addActionListener(e -> treeAlternatingRowsChanged());
+			treeOptionsPanel.add(treeAlternatingRowsCheckBox, "cell 0 1");
+		}
+		add(treeOptionsPanel, "cell 4 2");
+
 		//---- tableLabel ----
 		tableLabel.setText("JTable:");
 		add(tableLabel, "cell 0 3,aligny top,growy 0");
@@ -333,10 +447,10 @@ class DataComponentsPanel
 					"Not editable", "Text", "Combo", "Combo Editable", "Integer", "Boolean"
 				}
 			) {
-				Class<?>[] columnTypes = new Class<?>[] {
+				Class<?>[] columnTypes = {
 					Object.class, Object.class, String.class, String.class, Integer.class, Boolean.class
 				};
-				boolean[] columnEditable = new boolean[] {
+				boolean[] columnEditable = {
 					false, true, true, true, true, true
 				};
 				@Override
@@ -351,7 +465,7 @@ class DataComponentsPanel
 			{
 				TableColumnModel cm = table1.getColumnModel();
 				cm.getColumn(2).setCellEditor(new DefaultCellEditor(
-					new JComboBox(new DefaultComboBoxModel(new String[] {
+					new JComboBox<>(new DefaultComboBoxModel<>(new String[] {
 						"January",
 						"February",
 						"March",
@@ -366,7 +480,7 @@ class DataComponentsPanel
 						"December"
 					}))));
 				cm.getColumn(3).setCellEditor(new DefaultCellEditor(
-					new JComboBox(new DefaultComboBoxModel(new String[] {
+					new JComboBox<>(new DefaultComboBoxModel<>(new String[] {
 						"January",
 						"February",
 						"March",
@@ -383,6 +497,9 @@ class DataComponentsPanel
 			}
 			table1.setAutoCreateRowSorter(true);
 			table1.setComponentPopupMenu(popupMenu2);
+			table1.addPropertyChangeListener("showHorizontalLines", e -> showHorizontalLinesPropertyChange());
+			table1.addPropertyChangeListener("showVerticalLines", e -> showVerticalLinesPropertyChange());
+			table1.addPropertyChangeListener("rowMargin", e -> intercellSpacingPropertyChange());
 			scrollPane5.setViewportView(table1);
 		}
 		add(scrollPane5, "cell 1 3 3 1,width 300");
@@ -400,44 +517,56 @@ class DataComponentsPanel
 				"[]0" +
 				"[]0" +
 				"[]0" +
+				"[]0" +
+				"[]0" +
 				"[]0"));
+
+			//---- roundedSelectionCheckBox ----
+			roundedSelectionCheckBox.setText("rounded selection");
+			roundedSelectionCheckBox.addActionListener(e -> roundedSelectionChanged());
+			tableOptionsPanel.add(roundedSelectionCheckBox, "cell 0 0");
 
 			//---- showHorizontalLinesCheckBox ----
 			showHorizontalLinesCheckBox.setText("show horizontal lines");
 			showHorizontalLinesCheckBox.addActionListener(e -> showHorizontalLinesChanged());
-			tableOptionsPanel.add(showHorizontalLinesCheckBox, "cell 0 0");
+			tableOptionsPanel.add(showHorizontalLinesCheckBox, "cell 0 1");
 
 			//---- showVerticalLinesCheckBox ----
 			showVerticalLinesCheckBox.setText("show vertical lines");
 			showVerticalLinesCheckBox.addActionListener(e -> showVerticalLinesChanged());
-			tableOptionsPanel.add(showVerticalLinesCheckBox, "cell 0 1");
+			tableOptionsPanel.add(showVerticalLinesCheckBox, "cell 0 2");
 
 			//---- intercellSpacingCheckBox ----
 			intercellSpacingCheckBox.setText("intercell spacing");
 			intercellSpacingCheckBox.addActionListener(e -> intercellSpacingChanged());
-			tableOptionsPanel.add(intercellSpacingCheckBox, "cell 0 2");
+			tableOptionsPanel.add(intercellSpacingCheckBox, "cell 0 3");
 
 			//---- redGridColorCheckBox ----
 			redGridColorCheckBox.setText("red grid color");
 			redGridColorCheckBox.addActionListener(e -> redGridColorChanged());
-			tableOptionsPanel.add(redGridColorCheckBox, "cell 0 3");
+			tableOptionsPanel.add(redGridColorCheckBox, "cell 0 4");
 
 			//---- rowSelectionCheckBox ----
 			rowSelectionCheckBox.setText("row selection");
 			rowSelectionCheckBox.setSelected(true);
 			rowSelectionCheckBox.addActionListener(e -> rowSelectionChanged());
-			tableOptionsPanel.add(rowSelectionCheckBox, "cell 0 4");
+			tableOptionsPanel.add(rowSelectionCheckBox, "cell 0 5");
 
 			//---- columnSelectionCheckBox ----
 			columnSelectionCheckBox.setText("column selection");
 			columnSelectionCheckBox.addActionListener(e -> columnSelectionChanged());
-			tableOptionsPanel.add(columnSelectionCheckBox, "cell 0 5");
+			tableOptionsPanel.add(columnSelectionCheckBox, "cell 0 6");
+
+			//---- alternatingRowsCheckBox ----
+			alternatingRowsCheckBox.setText("alternating rows");
+			alternatingRowsCheckBox.addActionListener(e -> alternatingRowsChanged());
+			tableOptionsPanel.add(alternatingRowsCheckBox, "cell 0 7");
 
 			//---- dndCheckBox ----
 			dndCheckBox.setText("enable drag and drop");
 			dndCheckBox.setMnemonic('D');
 			dndCheckBox.addActionListener(e -> dndChanged());
-			tableOptionsPanel.add(dndCheckBox, "cell 0 6");
+			tableOptionsPanel.add(dndCheckBox, "cell 0 8");
 		}
 		add(tableOptionsPanel, "cell 4 3");
 
@@ -470,16 +599,21 @@ class DataComponentsPanel
 	private JList<String> list1;
 	private JList<String> list3;
 	private JList<String> list2;
+	private JCheckBox listAlternatingRowsCheckBox;
 	private JTree tree1;
 	private JTree tree3;
 	private JTree tree2;
+	private JCheckBox treeWideSelectionCheckBox;
+	private JCheckBox treeAlternatingRowsCheckBox;
 	private JTable table1;
+	private JCheckBox roundedSelectionCheckBox;
 	private JCheckBox showHorizontalLinesCheckBox;
 	private JCheckBox showVerticalLinesCheckBox;
 	private JCheckBox intercellSpacingCheckBox;
 	private JCheckBox redGridColorCheckBox;
 	private JCheckBox rowSelectionCheckBox;
 	private JCheckBox columnSelectionCheckBox;
+	private JCheckBox alternatingRowsCheckBox;
 	private JCheckBox dndCheckBox;
 	// JFormDesigner - End of variables declaration  //GEN-END:variables
 

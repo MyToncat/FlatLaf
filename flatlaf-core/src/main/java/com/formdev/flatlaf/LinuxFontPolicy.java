@@ -23,11 +23,14 @@ import java.awt.GraphicsEnvironment;
 import java.awt.Toolkit;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.StringTokenizer;
 import javax.swing.text.StyleContext;
 import com.formdev.flatlaf.util.LoggingFacade;
@@ -68,7 +71,7 @@ class LinuxFontPolicy
 			if( word.endsWith( "," ) )
 				word = word.substring( 0, word.length() - 1 ).trim();
 
-			String lword = word.toLowerCase();
+			String lword = word.toLowerCase( Locale.ENGLISH );
 			if( lword.equals( "italic" ) || lword.equals( "oblique" ) )
 				style |= Font.ITALIC;
 			else if( lword.equals( "bold" ) )
@@ -104,11 +107,11 @@ class LinuxFontPolicy
 			size = 1;
 
 		// handle logical font names
-		String logicalFamily = mapFcName( family.toLowerCase() );
+		String logicalFamily = mapFcName( family.toLowerCase( Locale.ENGLISH ) );
 		if( logicalFamily != null )
 			family = logicalFamily;
 
-		return createFontEx( family, style, size, dsize );
+		return createFontEx( family, style, size );
 	}
 
 	/**
@@ -118,9 +121,9 @@ class LinuxFontPolicy
 	 * E.g. family 'URW Bookman Light' is not found, but 'URW Bookman' is found.
 	 * If still not found, then font of family 'Dialog' is returned.
 	 */
-	private static Font createFontEx( String family, int style, int size, double dsize ) {
+	private static Font createFontEx( String family, int style, int size ) {
 		for(;;) {
-			Font font = createFont( family, style, size, dsize );
+			Font font = FlatLaf.createCompositeFont( family, style, size );
 
 			if( Font.DIALOG.equals( family ) )
 				return font;
@@ -132,7 +135,7 @@ class LinuxFontPolicy
 				// - character width is zero (e.g. font Cantarell; Fedora; Oracle Java 8)
 				FontMetrics fm = StyleContext.getDefaultStyleContext().getFontMetrics( font );
 				if( fm.getHeight() > size * 2 || fm.stringWidth( "a" ) == 0 )
-					return createFont( Font.DIALOG, style, size, dsize );
+					return FlatLaf.createCompositeFont( Font.DIALOG, style, size );
 
 				return font;
 			}
@@ -140,25 +143,16 @@ class LinuxFontPolicy
 			// find last word in family
 			int index = family.lastIndexOf( ' ' );
 			if( index < 0 )
-				return createFont( Font.DIALOG, style, size, dsize );
+				return FlatLaf.createCompositeFont( Font.DIALOG, style, size );
 
 			// check whether last work contains some font weight (e.g. Ultra-Bold or Heavy)
-			String lastWord = family.substring( index + 1 ).toLowerCase();
+			String lastWord = family.substring( index + 1 ).toLowerCase( Locale.ENGLISH );
 			if( lastWord.contains( "bold" ) || lastWord.contains( "heavy" ) || lastWord.contains( "black" ) )
 				style |= Font.BOLD;
 
 			// remove last word from family and try again
 			family = family.substring( 0, index );
 		}
-	}
-
-	private static Font createFont( String family, int style, int size, double dsize ) {
-		Font font = FlatLaf.createCompositeFont( family, style, size );
-
-		// set font size in floating points
-		font = font.deriveFont( style, (float) dsize );
-
-		return font;
 	}
 
 	private static double getGnomeFontScale() {
@@ -200,7 +194,7 @@ class LinuxFontPolicy
 	 * Gets the default font for KDE from KDE configuration files.
 	 *
 	 * The Swing fonts are not updated when the user changes system font size
-	 * (System Settings > Fonts > Force Font DPI). A application restart is necessary.
+	 * (System Settings > Fonts > Force Font DPI). An application restart is necessary.
 	 * This is the same behavior as in native KDE applications.
 	 *
 	 * The "display scale factor" (kdeglobals: [KScreen] > ScaleFactor) is not used
@@ -254,9 +248,10 @@ class LinuxFontPolicy
 		if( size < 1 )
 			size = 1;
 
-		return createFont( family, style, size, dsize );
+		return FlatLaf.createCompositeFont( family, style, size );
 	}
 
+	@SuppressWarnings( "MixedMutabilityReturnType" ) // Error Prone
 	private static List<String> readConfig( String filename ) {
 		File userHome = new File( System.getProperty( "user.home" ) );
 
@@ -277,7 +272,9 @@ class LinuxFontPolicy
 
 		// read config file
 		ArrayList<String> lines = new ArrayList<>( 200 );
-		try( BufferedReader reader = new BufferedReader( new FileReader( file ) ) ) {
+		try( BufferedReader reader = new BufferedReader( new InputStreamReader(
+			new FileInputStream( file ), StandardCharsets.US_ASCII ) ) )
+		{
 			String line;
 			while( (line = reader.readLine()) != null )
 				lines.add( line );

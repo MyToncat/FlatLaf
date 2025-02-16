@@ -1,4 +1,4 @@
-JFDML JFormDesigner: "8.0.0.0.194" Java: "17.0.2" encoding: "UTF-8"
+JFDML JFormDesigner: "8.2.3.0.386" Java: "21" encoding: "UTF-8"
 
 new FormModel {
 	contentType: "form/swing"
@@ -8,35 +8,267 @@ new FormModel {
 		}
 		add( new FormContainer( "com.formdev.flatlaf.testing.FlatTestPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
 			"$layoutConstraints": "ltr,insets dialog,hidemode 3"
-			"$columnConstraints": "[left]para[left][fill]"
-			"$rowConstraints": "para[]0[]0[]0[]0[]unrel[]0[]unrel[][top][]"
+			"$columnConstraints": "[left][fill][fill][fill]"
+			"$rowConstraints": "[fill][fill][][][40]"
 		} ) {
 			name: "this"
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "menuBarCheckBox"
-				"text": "menu bar"
-				"selected": true
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "menuBarChanged", false ) )
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
+				"$layoutConstraints": "ltr,hidemode 3,gap 0 0"
+				"$columnConstraints": "[left]"
+				"$rowConstraints": "[][][][][]"
+			} ) {
+				name: "panel7"
+				"border": new javax.swing.border.TitledBorder( "Window" )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "windowDecorationsCheckBox"
+					"text": "FlatLaf window decorations"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "windowDecorationsChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 0"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "resizableCheckBox"
+					"text": "resizable"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "resizableChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 1"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "undecoratedCheckBox"
+					"text": "undecorated"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "undecoratedChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 2"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "fullScreenCheckBox"
+					"text": "full screen"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "fullScreenChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 3"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "maximizedBoundsCheckBox"
+					"text": "maximized bounds (50,100, 1000,700)"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "maximizedBoundsChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 4"
+				} )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 0"
+				"value": "cell 0 0,growx"
 			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "rightCompCheckBox"
-				"text": "right aligned component"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "rightCompChanged", false ) )
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
+				"$layoutConstraints": "ltr,hidemode 3,gap 0 0"
+				"$columnConstraints": "[grow,left][fill]"
+				"$rowConstraints": "[][][][][]rel[]rel[]"
+			} ) {
+				name: "panel4"
+				"border": new javax.swing.border.TitledBorder( "Title Bar" )
+				add( new FormComponent( "com.formdev.flatlaf.extras.components.FlatTriStateCheckBox" ) {
+					name: "showIconCheckBox"
+					"text": "show icon"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showIconChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 0"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "titleBarHeightCheckBox"
+					"text": "Height:"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "titleBarHeightChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 1 0"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "showTitleCheckBox"
+					"text": "show title"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showTitleChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 1"
+				} )
+				add( new FormComponent( "javax.swing.JSpinner" ) {
+					name: "titleBarHeightField"
+					"enabled": false
+					"model": new javax.swing.SpinnerNumberModel {
+						stepSize: 2
+						value: 44
+					}
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "javax.swing.event.ChangeListener", "stateChanged", "titleBarHeightChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 1 1"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "showIconifyCheckBox"
+					"text": "show iconfiy"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showIconifyChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 2"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "showMaximizeCheckBox"
+					"text": "show maximize"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showMaximizeChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 3"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "showCloseCheckBox"
+					"text": "show close"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showCloseChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 4"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "fullWindowContentCheckBox"
+					"text": "full window content"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "fullWindowContentChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 5"
+				} )
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "fullWindowContentButtonsBoundsLabel"
+					"text": "Buttons bounds:"
+					"enabled": false
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 6"
+				} )
+				add( new FormComponent( "javax.swing.JLabel" ) {
+					name: "fullWindowContentButtonsBoundsField"
+					"text": "null"
+					"enabled": false
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 6"
+				} )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 				"value": "cell 1 0"
 			} )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
+				"$layoutConstraints": "ltr,hidemode 3,gap 0 0"
+				"$columnConstraints": "[left]"
+				"$rowConstraints": "[][][][][][]"
+			} ) {
+				name: "panel6"
+				"border": new javax.swing.border.TitledBorder( "Menu Bar" )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "menuBarCheckBox"
+					"text": "menu bar"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "menuBarChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 0"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "menuBarEmbeddedCheckBox"
+					"text": "embedded menu bar"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "menuBarEmbeddedChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 1"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "menuBarVisibleCheckBox"
+					"text": "menu bar visible"
+					"selected": true
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "menuBarVisibleChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 2"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "rightCompCheckBox"
+					"text": "right aligned component"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "rightCompChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 3"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "rightStretchCompCheckBox"
+					"text": "right aligned stretching component"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "rightStretchCompChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 4"
+				} )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "tallCompCheckBox"
+					"text": "tall component"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "tallCompChanged", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 5"
+				} )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 2 0"
+			} )
+			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
 				"$layoutConstraints": "hidemode 3"
 				"$columnConstraints": "[fill]"
-				"$rowConstraints": "[][][][][]unrel[]"
+				"$rowConstraints": "[][][][][][]unrel[]"
 			} ) {
 				name: "panel3"
 				add( new FormComponent( "javax.swing.JButton" ) {
@@ -70,6 +302,16 @@ new FormModel {
 					"value": "cell 0 2"
 				} )
 				add( new FormComponent( "javax.swing.JButton" ) {
+					name: "addTextFieldButton"
+					"text": "Add text field"
+					auxiliary() {
+						"JavaCodeGenerator.variableLocal": false
+					}
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "addTextField", false ) )
+				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+					"value": "cell 0 3"
+				} )
+				add( new FormComponent( "javax.swing.JButton" ) {
 					name: "removeMenuButton"
 					"text": "Remove menu"
 					auxiliary() {
@@ -77,7 +319,7 @@ new FormModel {
 					}
 					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "removeMenu", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-					"value": "cell 0 3"
+					"value": "cell 0 4"
 				} )
 				add( new FormComponent( "javax.swing.JButton" ) {
 					name: "changeMenuButton"
@@ -87,7 +329,7 @@ new FormModel {
 					}
 					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "changeMenu", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-					"value": "cell 0 4"
+					"value": "cell 0 5"
 				} )
 				add( new FormComponent( "javax.swing.JButton" ) {
 					name: "changeTitleButton"
@@ -97,142 +339,18 @@ new FormModel {
 					}
 					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "changeTitle", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-					"value": "cell 0 5"
+					"value": "cell 0 6"
 				} )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 2 0 1 8,aligny top,growy 0"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "menuBarEmbeddedCheckBox"
-				"text": "embedded menu bar"
-				"selected": true
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "menuBarEmbeddedChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 1"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "rightStretchCompCheckBox"
-				"text": "right aligned stretching component"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "rightStretchCompChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 1"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "menuBarVisibleCheckBox"
-				"text": "menu bar visible"
-				"selected": true
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "menuBarVisibleChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 2"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "colorizeMenuBarCheckBox"
-				"text": "colorize menu bar"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "colorizeMenuBar", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 2"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "unifiedBackgroundCheckBox"
-				"text": "unified background"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "unifiedBackgroundChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 3"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "colorizeMenusCheckBox"
-				"text": "colorize menus"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "colorizeMenus", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 3"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "colorizeTitleBarCheckBox"
-				"text": "colorize title bar"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "colorizeTitleBar", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 4"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "resizableCheckBox"
-				"text": "resizable"
-				"selected": true
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "resizableChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 5"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "maximizedBoundsCheckBox"
-				"text": "maximized bounds (50,100, 1000,700)"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "maximizedBoundsChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 5"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "undecoratedCheckBox"
-				"text": "undecorated"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "undecoratedChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 6"
-			} )
-			add( new FormComponent( "javax.swing.JCheckBox" ) {
-				name: "fullScreenCheckBox"
-				"text": "full screen"
-				auxiliary() {
-					"JavaCodeGenerator.variableLocal": false
-				}
-				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "fullScreenChanged", false ) )
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 6"
-			} )
-			add( new FormComponent( "javax.swing.JLabel" ) {
-				name: "label1"
-				"text": "Style:"
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 7"
-			} )
-			add( new FormComponent( "javax.swing.JLabel" ) {
-				name: "label2"
-				"text": "Icon:"
-			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 7"
+				"value": "cell 3 0 1 2,aligny top,growy 0"
 			} )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
-				"$columnConstraints": "[fill]"
+				"$columnConstraints": "[left]"
 				"$rowConstraints": "[][][][][][][][][]"
-				"$layoutConstraints": "ltr,insets 0,hidemode 3,gap 0 0"
+				"$layoutConstraints": "ltr,hidemode 3,gap 0 0"
 			} ) {
 				name: "panel1"
+				"border": new javax.swing.border.TitledBorder( "Window Decoration Style" )
 				add( new FormComponent( "javax.swing.JRadioButton" ) {
 					name: "styleNoneRadioButton"
 					"text": "none"
@@ -334,14 +452,15 @@ new FormModel {
 					"value": "cell 0 8"
 				} )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 8"
+				"value": "cell 0 1,growx"
 			} )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
 				"$columnConstraints": "[left]"
-				"$rowConstraints": "[][][][][]rel[]"
-				"$layoutConstraints": "ltr,insets 0,hidemode 3,gap 0 0"
+				"$rowConstraints": "[][][][][]"
+				"$layoutConstraints": "ltr,hidemode 3,gap 0 0"
 			} ) {
 				name: "panel2"
+				"border": new javax.swing.border.TitledBorder( "Window Icon" )
 				add( new FormComponent( "javax.swing.JRadioButton" ) {
 					name: "iconNoneRadioButton"
 					"text": "none"
@@ -399,77 +518,74 @@ new FormModel {
 					"value": "cell 0 4"
 				} )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 1 8"
+				"value": "cell 1 1"
 			} )
 			add( new FormContainer( "javax.swing.JPanel", new FormLayoutManager( class net.miginfocom.swing.MigLayout ) {
-				"$layoutConstraints": "ltr,insets 0,hidemode 3,gap 0 0"
-				"$columnConstraints": "[grow,left]"
-				"$rowConstraints": "[][][][][]"
+				"$layoutConstraints": "ltr,hidemode 3,gap 0 0"
+				"$columnConstraints": "[left]"
+				"$rowConstraints": "[][][][]para[]"
 			} ) {
-				name: "panel4"
-				add( new FormComponent( "com.formdev.flatlaf.extras.components.FlatTriStateCheckBox" ) {
-					name: "showIconCheckBox"
-					"text": "show icon"
+				name: "panel5"
+				"border": new javax.swing.border.TitledBorder( "Color" )
+				add( new FormComponent( "javax.swing.JCheckBox" ) {
+					name: "unifiedBackgroundCheckBox"
+					"text": "unified background"
 					auxiliary() {
 						"JavaCodeGenerator.variableLocal": false
 					}
-					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showIconChanged", false ) )
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "unifiedBackgroundChanged", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 0 0"
 				} )
 				add( new FormComponent( "javax.swing.JCheckBox" ) {
-					name: "showTitleCheckBox"
-					"text": "show title"
-					"selected": true
+					name: "colorizeTitleBarCheckBox"
+					"text": "colorize title bar"
 					auxiliary() {
 						"JavaCodeGenerator.variableLocal": false
 					}
-					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showTitleChanged", false ) )
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "colorizeTitleBar", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 0 1"
 				} )
 				add( new FormComponent( "javax.swing.JCheckBox" ) {
-					name: "showIconifyCheckBox"
-					"text": "show iconfiy"
-					"selected": true
+					name: "colorizeMenuBarCheckBox"
+					"text": "colorize menu bar"
 					auxiliary() {
 						"JavaCodeGenerator.variableLocal": false
 					}
-					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showIconifyChanged", false ) )
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "colorizeMenuBar", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 0 2"
 				} )
 				add( new FormComponent( "javax.swing.JCheckBox" ) {
-					name: "showMaximizeCheckBox"
-					"text": "show maximize"
-					"selected": true
+					name: "colorizeMenusCheckBox"
+					"text": "colorize menus"
 					auxiliary() {
 						"JavaCodeGenerator.variableLocal": false
 					}
-					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showMaximizeChanged", false ) )
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "colorizeMenus", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 0 3"
 				} )
 				add( new FormComponent( "javax.swing.JCheckBox" ) {
-					name: "showCloseCheckBox"
-					"text": "show close"
-					"selected": true
+					name: "translucentWindowBackgroundCheckBox"
+					"text": "translucent window background"
 					auxiliary() {
 						"JavaCodeGenerator.variableLocal": false
 					}
-					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showCloseChanged", false ) )
+					addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "translucentWindowBackgroundChanged", false ) )
 				}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
 					"value": "cell 0 4"
 				} )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 2 8"
+				"value": "cell 2 1"
 			} )
 			add( new FormComponent( "javax.swing.JButton" ) {
 				name: "openDialogButton"
 				"text": "Open Dialog"
 				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "openDialog", false ) )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 9 2 1"
+				"value": "cell 0 2 3 1"
 			} )
 			add( new FormComponent( "javax.swing.JButton" ) {
 				name: "openFrameButton"
@@ -477,11 +593,74 @@ new FormModel {
 				"mnemonic": 65
 				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "openFrame", false ) )
 			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
-				"value": "cell 0 9 2 1"
+				"value": "cell 0 2 3 1"
+			} )
+			add( new FormComponent( "javax.swing.JRadioButton" ) {
+				name: "typeNormalRadioButton"
+				"text": "Normal"
+				"selected": true
+				"$buttonGroup": new FormReference( "typeButtonGroup" )
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": false
+				}
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 0 2 3 1"
+			} )
+			add( new FormComponent( "javax.swing.JRadioButton" ) {
+				name: "typeUtilityRadioButton"
+				"text": "Utility"
+				"$buttonGroup": new FormReference( "typeButtonGroup" )
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": false
+				}
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 0 2 3 1"
+			} )
+			add( new FormComponent( "javax.swing.JRadioButton" ) {
+				name: "typeSmallRadioButton"
+				"text": "Small"
+				"$buttonGroup": new FormReference( "typeButtonGroup" )
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": false
+				}
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 0 2 3 1"
+			} )
+			add( new FormComponent( "javax.swing.JCheckBox" ) {
+				name: "showRectanglesCheckBox"
+				"text": "Show debug title bar rectangles"
+				"selected": true
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": false
+				}
+				addEvent( new FormEvent( "java.awt.event.ActionListener", "actionPerformed", "showRectangles", false ) )
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 0 3"
+			} )
+			add( new FormComponent( "com.jformdesigner.designer.wrapper.HSpacer" ) {
+				name: "hSpacer1"
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 2 3 2 1"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "frameStateLabel"
+				"text": "Frame state:"
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 2 3 2 1,alignx right,growx 0"
+			} )
+			add( new FormComponent( "javax.swing.JLabel" ) {
+				name: "frameStateField"
+				"text": "n/a"
+				"font": new com.jformdesigner.model.SwingDerivedFont( null, 1, 0, false )
+				auxiliary() {
+					"JavaCodeGenerator.variableLocal": false
+				}
+			}, new FormLayoutConstraints( class net.miginfocom.layout.CC ) {
+				"value": "cell 2 3 2 1,alignx right,growx 0"
 			} )
 		}, new FormLayoutConstraints( null ) {
 			"location": new java.awt.Point( 0, 0 )
-			"size": new java.awt.Dimension( 690, 495 )
+			"size": new java.awt.Dimension( 960, 570 )
 		} )
 		add( new FormContainer( "javax.swing.JMenuBar", new FormLayoutManager( class javax.swing.JMenuBar ) ) {
 			name: "menuBar"
@@ -647,18 +826,23 @@ new FormModel {
 				} )
 			} )
 		}, new FormLayoutConstraints( null ) {
-			"location": new java.awt.Point( 0, 515 )
+			"location": new java.awt.Point( 0, 585 )
 			"size": new java.awt.Dimension( 255, 30 )
 		} )
 		add( new FormNonVisual( "javax.swing.ButtonGroup" ) {
 			name: "styleButtonGroup"
 		}, new FormLayoutConstraints( null ) {
-			"location": new java.awt.Point( 0, 565 )
+			"location": new java.awt.Point( 0, 635 )
 		} )
 		add( new FormNonVisual( "javax.swing.ButtonGroup" ) {
 			name: "iconButtonGroup"
 		}, new FormLayoutConstraints( null ) {
-			"location": new java.awt.Point( 0, 615 )
+			"location": new java.awt.Point( 0, 685 )
+		} )
+		add( new FormNonVisual( "javax.swing.ButtonGroup" ) {
+			name: "typeButtonGroup"
+		}, new FormLayoutConstraints( null ) {
+			"location": new java.awt.Point( 0, 740 )
 		} )
 	}
 }

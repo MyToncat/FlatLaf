@@ -25,10 +25,11 @@ dependencies {
 	implementation( project( ":flatlaf-fonts-inter" ) )
 	implementation( project( ":flatlaf-fonts-jetbrains-mono" ) )
 	implementation( project( ":flatlaf-fonts-roboto" ) )
+	implementation( project( ":flatlaf-fonts-roboto-mono" ) )
 
-	implementation( "com.miglayout:miglayout-swing:5.3" )
-	implementation( "com.fifesoft:rsyntaxtextarea:3.1.4" )
-	implementation( "com.fifesoft:autocomplete:3.1.3" )
+	implementation( libs.miglayout.swing )
+	implementation( libs.fifesoft.rsyntaxtextarea )
+	implementation( libs.fifesoft.autocomplete )
 }
 
 tasks {
@@ -38,6 +39,7 @@ tasks {
 		dependsOn( ":flatlaf-fonts-inter:jar" )
 		dependsOn( ":flatlaf-fonts-jetbrains-mono:jar" )
 		dependsOn( ":flatlaf-fonts-roboto:jar" )
+		dependsOn( ":flatlaf-fonts-roboto-mono:jar" )
 
 		manifest {
 			attributes( "Main-Class" to "com.formdev.flatlaf.themeeditor.FlatLafThemeEditor" )

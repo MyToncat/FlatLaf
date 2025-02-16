@@ -28,6 +28,8 @@ import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.plaf.nimbus.NimbusLookAndFeel;
 import com.formdev.flatlaf.*;
 import com.formdev.flatlaf.extras.FlatAnimatedLafChange;
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import com.formdev.flatlaf.util.LoggingFacade;
 import com.formdev.flatlaf.util.SystemInfo;
 import com.formdev.flatlaf.util.UIScale;
@@ -66,6 +68,8 @@ class ControlBar
 		lafModel.addElement( new LookAndFeelInfo( "FlatLaf Dark (F2)", FlatDarkLaf.class.getName() ) );
 		lafModel.addElement( new LookAndFeelInfo( "FlatLaf IntelliJ (F3)", FlatIntelliJLaf.class.getName() ) );
 		lafModel.addElement( new LookAndFeelInfo( "FlatLaf Darcula (F4)", FlatDarculaLaf.class.getName() ) );
+		lafModel.addElement( new LookAndFeelInfo( "FlatLaf macOS Light (F5)", FlatMacLightLaf.class.getName() ) );
+		lafModel.addElement( new LookAndFeelInfo( "FlatLaf macOS Dark (F6)", FlatMacDarkLaf.class.getName() ) );
 
 		UIManager.LookAndFeelInfo[] lookAndFeels = UIManager.getInstalledLookAndFeels();
 		for( UIManager.LookAndFeelInfo lookAndFeel : lookAndFeels ) {
@@ -127,6 +131,8 @@ class ControlBar
 		registerSwitchToLookAndFeel( KeyEvent.VK_F2, FlatDarkLaf.class.getName() );
 		registerSwitchToLookAndFeel( KeyEvent.VK_F3, FlatIntelliJLaf.class.getName() );
 		registerSwitchToLookAndFeel( KeyEvent.VK_F4, FlatDarculaLaf.class.getName() );
+		registerSwitchToLookAndFeel( KeyEvent.VK_F5, FlatMacLightLaf.class.getName() );
+		registerSwitchToLookAndFeel( KeyEvent.VK_F6, FlatMacDarkLaf.class.getName() );
 
 		if( SystemInfo.isWindows )
 			registerSwitchToLookAndFeel( KeyEvent.VK_F9, "com.sun.java.swing.plaf.windows.WindowsLookAndFeel" );
@@ -134,8 +140,8 @@ class ControlBar
 			registerSwitchToLookAndFeel( KeyEvent.VK_F9, "com.apple.laf.AquaLookAndFeel" );
 		else if( SystemInfo.isLinux )
 			registerSwitchToLookAndFeel( KeyEvent.VK_F9, "com.sun.java.swing.plaf.gtk.GTKLookAndFeel" );
-		registerSwitchToLookAndFeel( KeyEvent.VK_F12, MetalLookAndFeel.class.getName() );
 		registerSwitchToLookAndFeel( KeyEvent.VK_F11, NimbusLookAndFeel.class.getName() );
+		registerSwitchToLookAndFeel( KeyEvent.VK_F12, MetalLookAndFeel.class.getName() );
 
 		// register Alt+UP and Alt+DOWN to switch to previous/next theme
 		((JComponent)frame.getContentPane()).registerKeyboardAction(
@@ -146,6 +152,9 @@ class ControlBar
 			e -> frame.themesPanel.selectNextTheme(),
 			KeyStroke.getKeyStroke( KeyEvent.VK_DOWN, KeyEvent.ALT_DOWN_MASK ),
 			JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT );
+
+		// register Alt+Shift+F1, F2, ... keys to change system scale factor
+		DemoPrefs.registerSystemScaleFactors( frame );
 
 		// register ESC key to close frame
 		((JComponent)frame.getContentPane()).registerKeyboardAction(

@@ -82,7 +82,9 @@ class FlatThemePropertiesSupport
 		this.basePropertyProvider = basePropertyProvider;
 	}
 
-	private String resolveValue( String value ) {
+	private String resolveValue( String value )
+		throws IllegalArgumentException
+	{
 		return UIDefaultsLoaderAccessor.resolveValue( value, propertiesGetter );
 	}
 
@@ -239,7 +241,7 @@ class FlatThemePropertiesSupport
 	}
 
 	static boolean isDark( String baseTheme ) {
-		return "dark".equals( baseTheme ) || "darcula".equals( baseTheme );
+		return "dark".equals( baseTheme ) || "darcula".equals( baseTheme ) || "macdark".equals( baseTheme );
 	}
 
 	private String getBaseTheme() {

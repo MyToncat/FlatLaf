@@ -253,7 +253,8 @@ public class TestFlatStyleableInfo
 		FlatLabelUI ui = (FlatLabelUI) c.getUI();
 
 		Map<String, Class<?>> expected = expectedMap(
-			"disabledForeground", Color.class
+			"disabledForeground", Color.class,
+			"arc", int.class
 		);
 
 		assertMapEquals( expected, ui.getStyleableInfos( c ) );
@@ -269,6 +270,7 @@ public class TestFlatStyleableInfo
 			"selectionForeground", Color.class,
 			"selectionInactiveBackground", Color.class,
 			"selectionInactiveForeground", Color.class,
+			"alternateRowColor", Color.class,
 			"selectionInsets", Insets.class,
 			"selectionArc", int.class,
 
@@ -516,6 +518,8 @@ public class TestFlatStyleableInfo
 			"icon.borderWidth", float.class,
 			"icon.selectedBorderWidth", float.class,
 			"icon.disabledSelectedBorderWidth", float.class,
+			"icon.indeterminateBorderWidth", float.class,
+			"icon.disabledIndeterminateBorderWidth", float.class,
 			"icon.arc", int.class,
 
 			// enabled
@@ -524,6 +528,9 @@ public class TestFlatStyleableInfo
 			"icon.selectedBorderColor", Color.class,
 			"icon.selectedBackground", Color.class,
 			"icon.checkmarkColor", Color.class,
+			"icon.indeterminateBorderColor", Color.class,
+			"icon.indeterminateBackground", Color.class,
+			"icon.indeterminateCheckmarkColor", Color.class,
 
 			// disabled
 			"icon.disabledBorderColor", Color.class,
@@ -531,6 +538,9 @@ public class TestFlatStyleableInfo
 			"icon.disabledSelectedBorderColor", Color.class,
 			"icon.disabledSelectedBackground", Color.class,
 			"icon.disabledCheckmarkColor", Color.class,
+			"icon.disabledIndeterminateBorderColor", Color.class,
+			"icon.disabledIndeterminateBackground", Color.class,
+			"icon.disabledIndeterminateCheckmarkColor", Color.class,
 
 			// focused
 			"icon.focusedBorderColor", Color.class,
@@ -538,6 +548,9 @@ public class TestFlatStyleableInfo
 			"icon.focusedSelectedBorderColor", Color.class,
 			"icon.focusedSelectedBackground", Color.class,
 			"icon.focusedCheckmarkColor", Color.class,
+			"icon.focusedIndeterminateBorderColor", Color.class,
+			"icon.focusedIndeterminateBackground", Color.class,
+			"icon.focusedIndeterminateCheckmarkColor", Color.class,
 
 			// hover
 			"icon.hoverBorderColor", Color.class,
@@ -545,13 +558,19 @@ public class TestFlatStyleableInfo
 			"icon.hoverSelectedBorderColor", Color.class,
 			"icon.hoverSelectedBackground", Color.class,
 			"icon.hoverCheckmarkColor", Color.class,
+			"icon.hoverIndeterminateBorderColor", Color.class,
+			"icon.hoverIndeterminateBackground", Color.class,
+			"icon.hoverIndeterminateCheckmarkColor", Color.class,
 
 			// pressed
 			"icon.pressedBorderColor", Color.class,
 			"icon.pressedBackground", Color.class,
 			"icon.pressedSelectedBorderColor", Color.class,
 			"icon.pressedSelectedBackground", Color.class,
-			"icon.pressedCheckmarkColor", Color.class
+			"icon.pressedCheckmarkColor", Color.class,
+			"icon.pressedIndeterminateBorderColor", Color.class,
+			"icon.pressedIndeterminateBackground", Color.class,
+			"icon.pressedIndeterminateCheckmarkColor", Color.class
 		);
 	}
 
@@ -601,7 +620,7 @@ public class TestFlatStyleableInfo
 		);
 
 		// border
-		flatBorder( expected );
+		flatScrollPaneBorder( expected );
 
 		assertMapEquals( expected, ui.getStyleableInfos( c ) );
 	}
@@ -689,6 +708,9 @@ public class TestFlatStyleableInfo
 
 		Map<String, Class<?>> expected = expectedMap(
 			"arrowType", String.class,
+			"draggingColor", Color.class,
+			"hoverColor", Color.class,
+			"pressedColor", Color.class,
 			"oneTouchArrowColor", Color.class,
 			"oneTouchHoverArrowColor", Color.class,
 			"oneTouchPressedArrowColor", Color.class,
@@ -721,7 +743,9 @@ public class TestFlatStyleableInfo
 			"inactiveUnderlineColor", Color.class,
 			"disabledUnderlineColor", Color.class,
 			"hoverColor", Color.class,
+			"hoverForeground", Color.class,
 			"focusColor", Color.class,
+			"focusForeground", Color.class,
 			"tabSeparatorColor", Color.class,
 			"contentAreaColor", Color.class,
 
@@ -730,6 +754,11 @@ public class TestFlatStyleableInfo
 			"tabHeight", int.class,
 			"tabSelectionHeight", int.class,
 			"cardTabSelectionHeight", int.class,
+			"tabArc", int.class,
+			"tabSelectionArc", int.class,
+			"cardTabArc", int.class,
+			"selectedInsets", Insets.class,
+			"tabSelectionInsets", Insets.class,
 			"contentSeparatorHeight", int.class,
 			"showTabSeparators", boolean.class,
 			"tabSeparatorsFullHeight", boolean.class,
@@ -745,6 +774,7 @@ public class TestFlatStyleableInfo
 			"tabAreaAlignment", String.class,
 			"tabAlignment", String.class,
 			"tabWidthMode", String.class,
+			"tabRotation", String.class,
 
 			"arrowType", String.class,
 			"buttonInsets", Insets.class,
@@ -788,6 +818,8 @@ public class TestFlatStyleableInfo
 			"selectionForeground", Color.class,
 			"selectionInactiveBackground", Color.class,
 			"selectionInactiveForeground", Color.class,
+			"selectionInsets", Insets.class,
+			"selectionArc", int.class,
 
 			// FlatTableCellBorder
 			"cellMargins", Insets.class,
@@ -804,6 +836,10 @@ public class TestFlatStyleableInfo
 		FlatTableHeaderUI ui = (FlatTableHeaderUI) c.getUI();
 
 		Map<String, Class<?>> expected = expectedMap(
+			"hoverBackground", Color.class,
+			"hoverForeground", Color.class,
+			"pressedBackground", Color.class,
+			"pressedForeground", Color.class,
 			"bottomSeparatorColor", Color.class,
 			"height", int.class,
 			"sortIconPosition", String.class,
@@ -914,7 +950,10 @@ public class TestFlatStyleableInfo
 			"hoverButtonGroupBackground", Color.class,
 
 			"borderMargins", Insets.class,
-			"gripColor", Color.class
+			"gripColor", Color.class,
+
+			"separatorWidth", Integer.class,
+			"separatorColor", Color.class
 		);
 
 		assertMapEquals( expected, ui.getStyleableInfos( c ) );
@@ -944,9 +983,11 @@ public class TestFlatStyleableInfo
 			"selectionInactiveBackground", Color.class,
 			"selectionInactiveForeground", Color.class,
 			"selectionBorderColor", Color.class,
+			"alternateRowColor", Color.class,
 			"selectionInsets", Insets.class,
 			"selectionArc", int.class,
 			"wideSelection", boolean.class,
+			"wideCellRenderer", boolean.class,
 			"showCellFocusIndicator", boolean.class,
 
 			"paintSelection", boolean.class,
@@ -975,12 +1016,20 @@ public class TestFlatStyleableInfo
 			"disabledBorderColor", Color.class,
 			"focusedBorderColor", Color.class,
 			"hoverBorderColor", Color.class,
+			"pressedBorderColor", Color.class,
+
+			"selectedBorderColor", Color.class,
+			"disabledSelectedBorderColor", Color.class,
+			"focusedSelectedBorderColor", Color.class,
+			"hoverSelectedBorderColor", Color.class,
+			"pressedSelectedBorderColor", Color.class,
 
 			"default.borderWidth", float.class,
 			"default.borderColor", Color.class,
 			"default.focusedBorderColor", Color.class,
 			"default.focusColor", Color.class,
 			"default.hoverBorderColor", Color.class,
+			"default.pressedBorderColor", Color.class,
 
 			"toolbar.focusWidth", float.class,
 			"toolbar.focusColor", Color.class,
@@ -994,8 +1043,15 @@ public class TestFlatStyleableInfo
 
 		expectedMap( expected,
 			"arc", int.class,
-
 			"roundRect", Boolean.class
+		);
+	}
+
+	private void flatScrollPaneBorder( Map<String, Class<?>> expected ) {
+		flatBorder( expected );
+
+		expectedMap( expected,
+			"arc", int.class
 		);
 	}
 
@@ -1004,7 +1060,6 @@ public class TestFlatStyleableInfo
 
 		expectedMap( expected,
 			"arc", int.class,
-
 			"roundRect", Boolean.class
 		);
 	}
@@ -1109,6 +1164,8 @@ public class TestFlatStyleableInfo
 			"borderWidth", float.class,
 			"selectedBorderWidth", float.class,
 			"disabledSelectedBorderWidth", float.class,
+			"indeterminateBorderWidth", float.class,
+			"disabledIndeterminateBorderWidth", float.class,
 			"arc", int.class,
 
 			// enabled
@@ -1117,6 +1174,9 @@ public class TestFlatStyleableInfo
 			"selectedBorderColor", Color.class,
 			"selectedBackground", Color.class,
 			"checkmarkColor", Color.class,
+			"indeterminateBorderColor", Color.class,
+			"indeterminateBackground", Color.class,
+			"indeterminateCheckmarkColor", Color.class,
 
 			// disabled
 			"disabledBorderColor", Color.class,
@@ -1124,6 +1184,9 @@ public class TestFlatStyleableInfo
 			"disabledSelectedBorderColor", Color.class,
 			"disabledSelectedBackground", Color.class,
 			"disabledCheckmarkColor", Color.class,
+			"disabledIndeterminateBorderColor", Color.class,
+			"disabledIndeterminateBackground", Color.class,
+			"disabledIndeterminateCheckmarkColor", Color.class,
 
 			// focused
 			"focusedBorderColor", Color.class,
@@ -1131,6 +1194,9 @@ public class TestFlatStyleableInfo
 			"focusedSelectedBorderColor", Color.class,
 			"focusedSelectedBackground", Color.class,
 			"focusedCheckmarkColor", Color.class,
+			"focusedIndeterminateBorderColor", Color.class,
+			"focusedIndeterminateBackground", Color.class,
+			"focusedIndeterminateCheckmarkColor", Color.class,
 
 			// hover
 			"hoverBorderColor", Color.class,
@@ -1138,13 +1204,19 @@ public class TestFlatStyleableInfo
 			"hoverSelectedBorderColor", Color.class,
 			"hoverSelectedBackground", Color.class,
 			"hoverCheckmarkColor", Color.class,
+			"hoverIndeterminateBorderColor", Color.class,
+			"hoverIndeterminateBackground", Color.class,
+			"hoverIndeterminateCheckmarkColor", Color.class,
 
 			// pressed
 			"pressedBorderColor", Color.class,
 			"pressedBackground", Color.class,
 			"pressedSelectedBorderColor", Color.class,
 			"pressedSelectedBackground", Color.class,
-			"pressedCheckmarkColor", Color.class
+			"pressedCheckmarkColor", Color.class,
+			"pressedIndeterminateBorderColor", Color.class,
+			"pressedIndeterminateBackground", Color.class,
+			"pressedIndeterminateCheckmarkColor", Color.class
 		);
 	}
 

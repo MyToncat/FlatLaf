@@ -21,7 +21,6 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import javax.swing.UIManager;
 import com.formdev.flatlaf.ui.FlatButtonUI;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.HiDPIUtils;
@@ -30,6 +29,7 @@ import com.formdev.flatlaf.util.HiDPIUtils;
  * Base class for window icons.
  *
  * @uiDefault TitlePane.buttonSize						Dimension
+ * @uiDefault TitlePane.buttonSymbolHeight				int
  * @uiDefault TitlePane.buttonHoverBackground			Color
  * @uiDefault TitlePane.buttonPressedBackground			Color
  *
@@ -38,40 +38,46 @@ import com.formdev.flatlaf.util.HiDPIUtils;
 public abstract class FlatWindowAbstractIcon
 	extends FlatAbstractIcon
 {
+	private final int symbolHeight;
 	private final Color hoverBackground;
 	private final Color pressedBackground;
 
-	public FlatWindowAbstractIcon() {
-		this( UIManager.getDimension( "TitlePane.buttonSize" ),
-			UIManager.getColor( "TitlePane.buttonHoverBackground" ),
-			UIManager.getColor( "TitlePane.buttonPressedBackground" ) );
+	/** @since 3.2 */
+	protected FlatWindowAbstractIcon( String windowStyle ) {
+		this( FlatUIUtils.getSubUIDimension( "TitlePane.buttonSize", windowStyle ),
+			FlatUIUtils.getSubUIInt( "TitlePane.buttonSymbolHeight", windowStyle, 10 ),
+			FlatUIUtils.getSubUIColor( "TitlePane.buttonHoverBackground", windowStyle ),
+			FlatUIUtils.getSubUIColor( "TitlePane.buttonPressedBackground", windowStyle ) );
 	}
 
-	public FlatWindowAbstractIcon( Dimension size, Color hoverBackground, Color pressedBackground ) {
+	/** @since 3.2 */
+	protected FlatWindowAbstractIcon( Dimension size, int symbolHeight, Color hoverBackground, Color pressedBackground ) {
 		super( size.width, size.height, null );
+		this.symbolHeight = symbolHeight;
 		this.hoverBackground = hoverBackground;
 		this.pressedBackground = pressedBackground;
 	}
 
 	@Override
 	protected void paintIcon( Component c, Graphics2D g ) {
-		paintBackground( c, g );
-
 		g.setColor( getForeground( c ) );
 		HiDPIUtils.paintAtScale1x( g, 0, 0, width, height, this::paintIconAt1x );
 	}
 
 	protected abstract void paintIconAt1x( Graphics2D g, int x, int y, int width, int height, double scaleFactor );
 
-	protected void paintBackground( Component c, Graphics2D g ) {
+	/** @since 3.5.2 */
+	@Override
+	protected void paintBackground( Component c, Graphics2D g, int x, int y ) {
 		Color background = FlatButtonUI.buttonStateColor( c, null, null, null, hoverBackground, pressedBackground );
 		if( background != null ) {
-			// disable antialiasing for background rectangle painting to avoid blury edges when scaled (e.g. at 125% or 175%)
+			// disable antialiasing for background rectangle painting to avoid blurry edges when scaled (e.g. at 125% or 175%)
 			Object oldHint = g.getRenderingHint( RenderingHints.KEY_ANTIALIASING );
 			g.setRenderingHint( RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF );
 
+			// fill background of whole component
 			g.setColor( FlatUIUtils.deriveColor( background, c.getBackground() ) );
-			g.fillRect( 0, 0, width, height );
+			g.fillRect( 0, 0, c.getWidth(), c.getHeight() );
 
 			g.setRenderingHint( RenderingHints.KEY_ANTIALIASING, oldHint );
 		}
@@ -79,5 +85,10 @@ public abstract class FlatWindowAbstractIcon
 
 	protected Color getForeground( Component c ) {
 		return c.getForeground();
+	}
+
+	/** @since 3.2 */
+	protected int getSymbolHeight() {
+		return symbolHeight;
 	}
 }

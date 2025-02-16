@@ -29,6 +29,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.Rectangle;
+import java.awt.event.FocusEvent;
 import java.awt.geom.RoundRectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.util.Map;
@@ -53,12 +54,15 @@ import javax.swing.plaf.ToolBarUI;
 import javax.swing.plaf.UIResource;
 import javax.swing.plaf.basic.BasicButtonListener;
 import javax.swing.plaf.basic.BasicButtonUI;
+import javax.swing.plaf.basic.BasicHTML;
+import javax.swing.text.View;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.icons.FlatHelpButtonIcon;
 import com.formdev.flatlaf.ui.FlatStylingSupport.Styleable;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
 import com.formdev.flatlaf.ui.FlatStylingSupport.UnknownStyleException;
+import com.formdev.flatlaf.util.HiDPIUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
 import com.formdev.flatlaf.util.UIScale;
 
@@ -276,8 +280,6 @@ public class FlatButtonUI
 
 		LookAndFeel.installProperty( b, "opaque", false );
 		LookAndFeel.installProperty( b, "iconTextGap", scale( iconTextGap ) );
-
-		MigLayoutVisualPadding.install( b );
 	}
 
 	@Override
@@ -287,8 +289,21 @@ public class FlatButtonUI
 		oldStyleValues = null;
 		borderShared = null;
 
-		MigLayoutVisualPadding.uninstall( b );
 		defaults_initialized = false;
+	}
+
+	@Override
+	protected void installListeners( AbstractButton b ) {
+		super.installListeners( b );
+
+		MigLayoutVisualPadding.install( b );
+	}
+
+	@Override
+	protected void uninstallListeners( AbstractButton b ) {
+		super.uninstallListeners( b );
+
+		MigLayoutVisualPadding.uninstall( b );
 	}
 
 	@Override
@@ -298,6 +313,10 @@ public class FlatButtonUI
 
 	protected void propertyChange( AbstractButton b, PropertyChangeEvent e ) {
 		switch( e.getPropertyName() ) {
+			case BasicHTML.propertyKey:
+				FlatHTML.updateRendererCSSFontBaseSize( b );
+				break;
+
 			case SQUARE_SIZE:
 			case MINIMUM_WIDTH:
 			case MINIMUM_HEIGHT:
@@ -306,11 +325,11 @@ public class FlatButtonUI
 
 			case BUTTON_TYPE:
 				b.revalidate();
-				b.repaint();
+				HiDPIUtils.repaint( b );
 				break;
 
 			case OUTLINE:
-				b.repaint();
+				HiDPIUtils.repaint( b );
 				break;
 
 			case STYLE:
@@ -322,7 +341,7 @@ public class FlatButtonUI
 				} else
 					installStyle( b );
 				b.revalidate();
-				b.repaint();
+				HiDPIUtils.repaint( b );
 				break;
 		}
 	}
@@ -361,6 +380,9 @@ public class FlatButtonUI
 			key = key.substring( "help.".length() );
 			return ((FlatHelpButtonIcon)helpButtonIcon).applyStyleProperty( key, value );
 		}
+
+		if( "iconTextGap".equals( key ) && value instanceof Integer )
+			value = UIScale.scale( (Integer) value );
 
 		if( borderShared == null )
 			borderShared = new AtomicBoolean( true );
@@ -548,9 +570,52 @@ public class FlatButtonUI
 		}
 	}
 
+	/**
+	 * Similar to BasicButtonUI.paint(), but does not use zero insets for HTML text,
+	 * which is done in BasicButtonUI.layout() since Java 19.
+	 * See https://github.com/openjdk/jdk/pull/8407
+	 * and https://github.com/openjdk/jdk/pull/8407#issuecomment-1761583430
+	 */
 	@Override
 	public void paint( Graphics g, JComponent c ) {
-		super.paint( FlatLabelUI.createGraphicsHTMLTextYCorrection( g, c ), c );
+		g = FlatLabelUI.createGraphicsHTMLTextYCorrection( g, c );
+
+		AbstractButton b = (AbstractButton) c;
+
+		// layout
+		String clippedText = layout( b, b.getFontMetrics( b.getFont() ), b.getWidth(), b.getHeight() );
+
+		// not used in FlatLaf, but invoked for compatibility with BasicButtonUI.paint()
+		clearTextShiftOffset();
+
+		// not used in FlatLaf, but invoked for compatibility with BasicButtonUI.paint()
+		ButtonModel model = b.getModel();
+		if( model.isArmed() && model.isPressed() )
+			paintButtonPressed( g, b );
+
+		// paint icon
+		if( b.getIcon() != null )
+			paintIcon( g, b, iconR );
+
+		// paint text
+		if( clippedText != null && !clippedText.isEmpty() ) {
+			View view = (View) b.getClientProperty( BasicHTML.propertyKey );
+			if( view != null ) {
+				// update foreground color in HTML view, which is necessary
+				// for selected and pressed states
+				// (only for enabled buttons, because UIManager.getColor("textInactiveText")
+				// is used for disabled components; see: javax.swing.text.GlyphView.paint())
+				if( b.isEnabled() )
+					FlatHTML.updateRendererCSSForeground( view, getForeground( b ) );
+
+				view.paint( g, textR ); // HTML text
+			} else
+				paintText( g, b, textR, clippedText );
+		}
+
+		// not used in FlatLaf, but invoked for compatibility with BasicButtonUI.paint()
+		if( b.isFocusPainted() && b.hasFocus() )
+			paintFocus( g, b, viewR, textR, iconR );
 	}
 
 	@Override
@@ -590,8 +655,6 @@ public class FlatButtonUI
 	}
 
 	public static void paintText( Graphics g, AbstractButton b, Rectangle textRect, String text, Color foreground ) {
-		if(foreground == null)
-			foreground=Color.red;
 		FontMetrics fm = b.getFontMetrics( b.getFont() );
 		int mnemonicIndex = FlatLaf.isShowMnemonics() ? b.getDisplayedMnemonicIndex() : -1;
 
@@ -601,7 +664,8 @@ public class FlatButtonUI
 	}
 
 	protected Color getBackground( JComponent c ) {
-		boolean toolBarButton = isToolBarButton( c ) || isBorderlessButton( c );
+		boolean def = isDefaultButton( c );
+		boolean toolBarButton = !def && (isToolBarButton( c ) || isBorderlessButton( c ));
 
 		// selected state
 		if( ((AbstractButton)c).isSelected() ) {
@@ -629,7 +693,6 @@ public class FlatButtonUI
 				toolbarPressedBackground );
 		}
 
-		boolean def = isDefaultButton( c );
 		return buttonStateColor( c,
 			getBackgroundBase( c, def ),
 			disabledBackground,
@@ -680,14 +743,16 @@ public class FlatButtonUI
 	}
 
 	protected Color getForeground( JComponent c ) {
-		boolean toolBarButton = isToolBarButton( c ) || isBorderlessButton( c );
+		Color fg = c.getForeground();
+		boolean def = isDefaultButton( c );
+		boolean toolBarButton = !def && (isToolBarButton( c ) || isBorderlessButton( c ));
 
 		// selected state
 		if( ((AbstractButton)c).isSelected() ) {
 			return buttonStateColor( c,
 				toolBarButton
-					? (toolbarSelectedForeground != null ? toolbarSelectedForeground : c.getForeground())
-					: selectedForeground,
+					? (toolbarSelectedForeground != null ? toolbarSelectedForeground : fg)
+					: (isCustomForeground( fg ) ? fg : selectedForeground),
 				toolBarButton
 					? (toolbarDisabledSelectedForeground != null ? toolbarDisabledSelectedForeground : disabledText)
 					: (disabledSelectedForeground != null ? disabledSelectedForeground : disabledText),
@@ -699,18 +764,17 @@ public class FlatButtonUI
 		// toolbar button
 		if( toolBarButton ) {
 			return buttonStateColor( c,
-				c.getForeground(),
+				fg,
 				disabledText,
 				null,
 				toolbarHoverForeground,
 				toolbarPressedForeground );
 		}
 
-		boolean def = isDefaultButton( c );
 		return buttonStateColor( c,
 			getForegroundBase( c, def ),
 			disabledText,
-			isCustomForeground( c.getForeground() ) ? null : (def ? defaultFocusedForeground : focusedForeground),
+			isCustomForeground( fg ) ? null : (def ? defaultFocusedForeground : focusedForeground),
 			def ? defaultHoverForeground : hoverForeground,
 			def ? defaultPressedForeground : pressedForeground );
 	}
@@ -783,6 +847,67 @@ public class FlatButtonUI
 		return margin instanceof UIResource && Objects.equals( margin, defaultMargin );
 	}
 
+	@Override
+	public int getBaseline( JComponent c, int width, int height ) {
+		return getBaselineImpl( c, width, height );
+	}
+
+	/**
+	 * Similar to BasicButtonUI.getBaseline(), but does not use zero insets for HTML text,
+	 * which is done in BasicButtonUI.layout() since Java 19.
+	 * See https://github.com/openjdk/jdk/pull/8407
+	 * and https://github.com/openjdk/jdk/pull/8407#issuecomment-1761583430
+	 */
+	static int getBaselineImpl( JComponent c, int width, int height ) {
+		if( width < 0 || height < 0 )
+			throw new IllegalArgumentException();
+
+		AbstractButton b = (AbstractButton) c;
+		String text = b.getText();
+		if( text == null || text.isEmpty() )
+			return -1;
+
+		FontMetrics fm = b.getFontMetrics( b.getFont() );
+		layout( b, fm, width, height );
+
+		View view = (View) b.getClientProperty( BasicHTML.propertyKey );
+		if( view != null ) {
+			// HTML text
+			int baseline = BasicHTML.getHTMLBaseline( view, textR.width, textR.height );
+			return (baseline >= 0) ? textR.y + baseline : baseline;
+		} else
+			return textR.y + fm.getAscent();
+	}
+
+	/**
+	 * Similar to BasicButtonUI.layout(), but does not use zero insets for HTML text,
+	 * which is done in BasicButtonUI.layout() since Java 19.
+	 * See https://github.com/openjdk/jdk/pull/8407
+	 * and https://github.com/openjdk/jdk/pull/8407#issuecomment-1761583430
+	 */
+	private static String layout( AbstractButton b, FontMetrics fm, int width, int height ) {
+		// compute view rectangle
+		Insets insets = b.getInsets();
+		viewR.setBounds( insets.left, insets.top,
+			width - insets.left - insets.right,
+			height - insets.top - insets.bottom );
+
+		// reset rectangles
+		textR.setBounds( 0, 0, 0, 0 );
+		iconR.setBounds( 0, 0, 0, 0 );
+
+		String text = b.getText();
+		return SwingUtilities.layoutCompoundLabel( b, fm, text, b.getIcon(),
+			b.getVerticalAlignment(), b.getHorizontalAlignment(),
+			b.getVerticalTextPosition(), b.getHorizontalTextPosition(),
+			viewR, iconR, textR,
+			(text != null) ? b.getIconTextGap() : 0 );
+	}
+
+	private static Rectangle viewR = new Rectangle();
+	private static Rectangle textR = new Rectangle();
+	private static Rectangle iconR = new Rectangle();
+
 	//---- class FlatButtonListener -------------------------------------------
 
 	protected class FlatButtonListener
@@ -803,7 +928,7 @@ public class FlatButtonUI
 
 		@Override
 		public void stateChanged( ChangeEvent e ) {
-			super.stateChanged( e );
+			HiDPIUtils.repaint( b );
 
 			// if button is in toolbar, repaint button groups
 			AbstractButton b = (AbstractButton) e.getSource();
@@ -814,6 +939,18 @@ public class FlatButtonUI
 				if( ui instanceof FlatToolBarUI )
 					((FlatToolBarUI)ui).repaintButtonGroup( b );
 			}
+		}
+
+		@Override
+		public void focusGained( FocusEvent e ) {
+			super.focusGained( e );
+			HiDPIUtils.repaint( b );
+		}
+
+		@Override
+		public void focusLost( FocusEvent e ) {
+			super.focusLost( e );
+			HiDPIUtils.repaint( b );
 		}
 	}
 }

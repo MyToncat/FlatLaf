@@ -19,6 +19,7 @@ package com.formdev.flatlaf.demo;
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.*;
+import com.formdev.flatlaf.FlatClientProperties;
 import net.miginfocom.swing.*;
 
 /**
@@ -118,6 +119,14 @@ class MoreComponentsPanel
 		JLabel label5 = new JLabel();
 		JPanel panel13 = new JPanel();
 		JLabel label6 = new JLabel();
+		JLabel panelLabel = new JLabel();
+		JPanel panel5 = new JPanel();
+		JLabel label9 = new JLabel();
+		JPanel panel4 = new JPanel();
+		JLabel label8 = new JLabel();
+		JLabel labelLabel = new JLabel();
+		JLabel label13 = new JLabel();
+		JLabel label10 = new JLabel();
 
 		//======== this ========
 		setLayout(new MigLayout(
@@ -140,7 +149,9 @@ class MoreComponentsPanel
 			"[]" +
 			"[]" +
 			"[]" +
-			"[100,top]"));
+			"[100,top]" +
+			"[50,top]" +
+			"[]"));
 
 		//---- scrollPaneLabel ----
 		scrollPaneLabel.setText("JScrollPane:");
@@ -166,12 +177,12 @@ class MoreComponentsPanel
 		add(scrollBar3, "cell 2 0 1 6,growy");
 
 		//---- scrollBar7 ----
-		scrollBar7.putClientProperty("JScrollBar.showButtons", true);
+		scrollBar7.putClientProperty(FlatClientProperties.SCROLL_BAR_SHOW_BUTTONS, true);
 		add(scrollBar7, "cell 2 0 1 6,growy");
 
 		//---- scrollBar8 ----
 		scrollBar8.setEnabled(false);
-		scrollBar8.putClientProperty("JScrollBar.showButtons", true);
+		scrollBar8.putClientProperty(FlatClientProperties.SCROLL_BAR_SHOW_BUTTONS, true);
 		add(scrollBar8, "cell 2 0 1 6,growy");
 
 		//---- separator2 ----
@@ -291,13 +302,13 @@ class MoreComponentsPanel
 
 		//---- scrollBar5 ----
 		scrollBar5.setOrientation(Adjustable.HORIZONTAL);
-		scrollBar5.putClientProperty("JScrollBar.showButtons", true);
+		scrollBar5.putClientProperty(FlatClientProperties.SCROLL_BAR_SHOW_BUTTONS, true);
 		add(scrollBar5, "cell 1 3,growx");
 
 		//---- scrollBar6 ----
 		scrollBar6.setOrientation(Adjustable.HORIZONTAL);
 		scrollBar6.setEnabled(false);
-		scrollBar6.putClientProperty("JScrollBar.showButtons", true);
+		scrollBar6.putClientProperty(FlatClientProperties.SCROLL_BAR_SHOW_BUTTONS, true);
 		add(scrollBar6, "cell 1 4,growx");
 
 		//---- separatorLabel ----
@@ -441,7 +452,7 @@ class MoreComponentsPanel
 
 				//======== panel10 ========
 				{
-					panel10.setBackground(new Color(217, 163, 67));
+					panel10.setBackground(new Color(0xd9a343));
 					panel10.setLayout(new BorderLayout());
 
 					//---- label1 ----
@@ -454,7 +465,7 @@ class MoreComponentsPanel
 
 				//======== panel11 ========
 				{
-					panel11.setBackground(new Color(98, 181, 67));
+					panel11.setBackground(new Color(0x62b543));
 					panel11.setLayout(new BorderLayout());
 
 					//---- label2 ----
@@ -474,7 +485,7 @@ class MoreComponentsPanel
 
 				//======== panel12 ========
 				{
-					panel12.setBackground(new Color(242, 101, 34));
+					panel12.setBackground(new Color(0xf26522));
 					panel12.setLayout(new BorderLayout());
 
 					//---- label5 ----
@@ -487,7 +498,7 @@ class MoreComponentsPanel
 
 				//======== panel13 ========
 				{
-					panel13.setBackground(new Color(64, 182, 224));
+					panel13.setBackground(new Color(0x40b6e0));
 					panel13.setLayout(new BorderLayout());
 
 					//---- label6 ----
@@ -501,6 +512,52 @@ class MoreComponentsPanel
 			splitPane3.setRightComponent(splitPane2);
 		}
 		add(splitPane3, "cell 1 11 4 1,grow");
+
+		//---- panelLabel ----
+		panelLabel.setText("JPanel:");
+		add(panelLabel, "cell 0 12");
+
+		//======== panel5 ========
+		{
+			panel5.putClientProperty(FlatClientProperties.STYLE, "arc: 16; background: darken($Panel.background,5%)");
+			panel5.setLayout(new BorderLayout());
+
+			//---- label9 ----
+			label9.setText("rounded background");
+			label9.setHorizontalAlignment(SwingConstants.CENTER);
+			panel5.add(label9, BorderLayout.CENTER);
+		}
+		add(panel5, "cell 1 12 4 1,growy,width 150");
+
+		//======== panel4 ========
+		{
+			panel4.putClientProperty(FlatClientProperties.STYLE, "border: 1,1,1,1,@disabledForeground,1,16; background: darken($Panel.background,5%)");
+			panel4.setLayout(new BorderLayout());
+
+			//---- label8 ----
+			label8.setText("rounded border");
+			label8.setHorizontalAlignment(SwingConstants.CENTER);
+			panel4.add(label8, BorderLayout.CENTER);
+		}
+		add(panel4, "cell 1 12 4 1,growy,width 150");
+
+		//---- labelLabel ----
+		labelLabel.setText("JLabel:");
+		add(labelLabel, "cell 0 13");
+
+		//---- label13 ----
+		label13.setText("rounded background");
+		label13.putClientProperty(FlatClientProperties.STYLE, "arc: 999; border: 2,10,2,10");
+		label13.setBackground(new Color(0xb8e4f3));
+		label13.setForeground(new Color(0x135b76));
+		add(label13, "cell 1 13 4 1");
+
+		//---- label10 ----
+		label10.setText("rounded border");
+		label10.putClientProperty(FlatClientProperties.STYLE, "arc: 999; border: 2,10,2,10,#135b76");
+		label10.setBackground(new Color(0xb8e4f3));
+		label10.setForeground(new Color(0x135b76));
+		add(label10, "cell 1 13 4 1");
 
 		//---- buttonGroup1 ----
 		ButtonGroup buttonGroup1 = new ButtonGroup();

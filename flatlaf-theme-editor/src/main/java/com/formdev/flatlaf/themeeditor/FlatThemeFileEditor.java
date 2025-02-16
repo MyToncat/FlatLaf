@@ -25,6 +25,7 @@ import java.awt.Cursor;
 import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.EventQueue;
+import java.awt.FlowLayout;
 import java.awt.Graphics;
 import java.awt.GraphicsConfiguration;
 import java.awt.Insets;
@@ -66,7 +67,10 @@ import com.formdev.flatlaf.extras.components.*;
 import com.formdev.flatlaf.fonts.inter.FlatInterFont;
 import com.formdev.flatlaf.fonts.jetbrains_mono.FlatJetBrainsMonoFont;
 import com.formdev.flatlaf.fonts.roboto.FlatRobotoFont;
+import com.formdev.flatlaf.fonts.roboto_mono.FlatRobotoMonoFont;
 import com.formdev.flatlaf.icons.FlatClearIcon;
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.StringUtils;
 import com.formdev.flatlaf.util.SystemInfo;
@@ -99,7 +103,7 @@ class FlatThemeFileEditor
 	private final FlatThemePropertiesBaseManager propertiesBaseManager = new FlatThemePropertiesBaseManager();
 	private final JButton newButton;
 
-	static void main( String[] args ) {
+	static void launch( String[] args ) {
 		File dir = (args.length > 0)
 			? new File( args[0] )
 			: null;
@@ -111,6 +115,7 @@ class FlatThemeFileEditor
 			FlatInterFont.installLazy();
 			FlatJetBrainsMonoFont.installLazy();
 			FlatRobotoFont.installLazy();
+			FlatRobotoMonoFont.installLazy();
 
 			FlatLaf.registerCustomDefaultsSource( "com.formdev.flatlaf.themeeditor" );
 
@@ -136,7 +141,6 @@ class FlatThemeFileEditor
 
 		directoryField.setRenderer( new DirectoryRenderer( directoryField ) );
 
-		openDirectoryButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/themeeditor/icons/menu-open.svg" ) );
 		if( UIManager.getLookAndFeel() instanceof FlatDarkLaf )
 			darkLafMenuItem.setSelected( true );
 
@@ -188,22 +192,20 @@ class FlatThemeFileEditor
 
 			if( SystemInfo.isMacFullWindowContentSupported ) {
 				// expand window content into window title bar and make title bar transparent
-				getRootPane().putClientProperty( "apple.awt.fullWindowContent", true );
-				getRootPane().putClientProperty( "apple.awt.transparentTitleBar", true );
+				rootPane.putClientProperty( "apple.awt.fullWindowContent", true );
+				rootPane.putClientProperty( "apple.awt.transparentTitleBar", true );
+				rootPane.putClientProperty( FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING, FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING_LARGE );
 
 				// hide window title
 				if( SystemInfo.isJava_17_orLater )
-					getRootPane().putClientProperty( "apple.awt.windowTitleVisible", false );
+					rootPane.putClientProperty( "apple.awt.windowTitleVisible", false );
 				else
 					setTitle( null );
-
-				// add gap to left side of toolbar
-				controlPanel.add( Box.createHorizontalStrut( 70 ), 0 );
 			}
 
 			// enable full screen mode for this window (for Java 8 - 10; not necessary for Java 11+)
 			if( !SystemInfo.isJava_11_orLater )
-				getRootPane().putClientProperty( "apple.awt.fullscreenable", true );
+				rootPane.putClientProperty( "apple.awt.fullscreenable", true );
 		}
 
 		// integrate into macOS screen menu
@@ -398,7 +400,7 @@ class FlatThemeFileEditor
 		if( !themesDir.isDirectory() )
 			return propertiesFiles;
 
-		// get files from "themes" sub-directory
+		// get files from "themes" subdirectory
 		File[] themesFiles = getPropertiesFiles( themesDir );
 		File[] allFiles = new File[propertiesFiles.length + themesFiles.length];
 		System.arraycopy( propertiesFiles, 0, allFiles, 0, propertiesFiles.length );
@@ -413,6 +415,8 @@ class FlatThemeFileEditor
 			case "FlatDarkLaf.properties":		return "\0\2";
 			case "FlatIntelliJLaf.properties":	return "\0\3";
 			case "FlatDarculaLaf.properties":	return "\0\4";
+			case "FlatMacLightLaf.properties":	return "\0\5";
+			case "FlatMacDarkLaf.properties":	return "\0\6";
 			default:							return name;
 		}
 	}
@@ -489,6 +493,8 @@ class FlatThemeFileEditor
 			FlatDarkLaf.NAME,
 			FlatIntelliJLaf.NAME,
 			FlatDarculaLaf.NAME,
+			FlatMacLightLaf.NAME,
+			FlatMacDarkLaf.NAME,
 		} );
 		JCheckBox genJavaClassCheckBox = new JCheckBox( "Generate Java class" );
 		genJavaClassCheckBox.setMnemonic( 'G' );
@@ -562,12 +568,14 @@ class FlatThemeFileEditor
 		throws IOException
 	{
 		StringBuilder buf = new StringBuilder();
-		buf.append( "# base theme (light, dark, intellij or darcula); only used by theme editor\n" );
+		buf.append( "# base theme (light, dark, intellij, darcula, maclight or macdark); only used by theme editor\n" );
 		switch( baseTheme ) {
 			case FlatLightLaf.NAME:		buf.append( "@baseTheme = light\n" ); break;
 			case FlatDarkLaf.NAME:		buf.append( "@baseTheme = dark\n" ); break;
 			case FlatIntelliJLaf.NAME:	buf.append( "@baseTheme = intellij\n" ); break;
 			case FlatDarculaLaf.NAME:	buf.append( "@baseTheme = darcula\n" ); break;
+			case FlatMacLightLaf.NAME:	buf.append( "@baseTheme = maclight\n" ); break;
+			case FlatMacDarkLaf.NAME:	buf.append( "@baseTheme = macdark\n" ); break;
 		}
 
 		writeFile( file, buf.toString() );
@@ -619,18 +627,29 @@ class FlatThemeFileEditor
 			case FlatDarkLaf.NAME:		themeBaseClass = "FlatDarkLaf"; break;
 			case FlatIntelliJLaf.NAME:	themeBaseClass = "FlatIntelliJLaf"; break;
 			case FlatDarculaLaf.NAME:	themeBaseClass = "FlatDarculaLaf"; break;
+			case FlatMacLightLaf.NAME:	themeBaseClass = "FlatMacLightLaf"; break;
+			case FlatMacDarkLaf.NAME:	themeBaseClass = "FlatMacDarkLaf"; break;
+		}
+
+		String themeBasePackage = "";
+		switch( baseTheme ) {
+			case FlatMacLightLaf.NAME:
+			case FlatMacDarkLaf.NAME:
+				themeBasePackage = "themes.";
+				break;
 		}
 
 		String pkgStmt = (pkg != null) ? "package " + pkg + ";\n\n" : "";
 		String classBody = CLASS_TEMPLATE
 			.replace( "${themeClass}", themeName )
+			.replace( "${themeBasePackage}", themeBasePackage )
 			.replace( "${themeBaseClass}", themeBaseClass );
 
 		writeFile( file, pkgStmt + classBody );
 	}
 
 	private static final String CLASS_TEMPLATE =
-		"import com.formdev.flatlaf.${themeBaseClass};\n" +
+		"import com.formdev.flatlaf.${themeBasePackage}${themeBaseClass};\n" +
 		"\n" +
 		"public class ${themeClass}\n" +
 		"	extends ${themeBaseClass}\n" +
@@ -846,7 +865,14 @@ class FlatThemeFileEditor
 
 		// restore directories history
 		String[] directories = getPrefsStrings( state, KEY_DIRECTORIES );
-		SortedComboBoxModel<File> model = new SortedComboBoxModel<>( new File[0] );
+		SortedComboBoxModel<File> model = new SortedComboBoxModel<>( new File[0],
+			(file1, file2) -> {
+				// replace path separator with zero to order shorter names before longer
+				// (e.g. c:\dir\sub before c:\dir2\sub)
+				String path1 = file1.getPath().replace( '/', '\0' ).replace( '\\', '\0' );
+				String path2 = file2.getPath().replace( '/', '\0' ).replace( '\\', '\0' );
+				return path1.compareToIgnoreCase( path2 );
+			} );
 		for( String dirStr : directories ) {
 			File dir = new File( dirStr );
 			if( dir.isDirectory() )
@@ -901,6 +927,12 @@ class FlatThemeFileEditor
 						x = Math.max( Math.min( x, r.width - w ), r.x );
 						y = Math.max( Math.min( y, r.height - h ), r.y );
 					}
+
+					// On macOS, the window may be empty if it spans the whole screen height
+					// and client property apple.awt.fullWindowContent is set to true.
+					// Invoking addNotify() before setting window bounds fixes this issue.
+					if( SystemInfo.isMacOS && !isDisplayable() )
+						addNotify();
 
 					setBounds( x, y, w, h );
 					return;
@@ -988,6 +1020,7 @@ class FlatThemeFileEditor
 		helpMenu = new JMenu();
 		aboutMenuItem = new JMenuItem();
 		controlPanel = new JPanel();
+		JPanel macFullWindowContentButtonsPlaceholder = new JPanel();
 		directoryLabel = new JLabel();
 		directoryField = new FlatThemeFileEditor.DirectoryComboBox();
 		openDirectoryButton = new JButton();
@@ -1024,6 +1057,7 @@ class FlatThemeFileEditor
 				openDirectoryMenuItem.setText("Open Directory...");
 				openDirectoryMenuItem.setMnemonic('O');
 				openDirectoryMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+				openDirectoryMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/themeeditor/icons/menu-open.svg"));
 				openDirectoryMenuItem.addActionListener(e -> openDirectory());
 				fileMenu.add(openDirectoryMenuItem);
 
@@ -1031,6 +1065,7 @@ class FlatThemeFileEditor
 				newPropertiesFileMenuItem.setText("New Properties File...");
 				newPropertiesFileMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				newPropertiesFileMenuItem.setMnemonic('N');
+				newPropertiesFileMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/themeeditor/icons/add.svg"));
 				newPropertiesFileMenuItem.addActionListener(e -> newPropertiesFile());
 				fileMenu.add(newPropertiesFileMenuItem);
 
@@ -1038,6 +1073,7 @@ class FlatThemeFileEditor
 				saveAllMenuItem.setText("Save All");
 				saveAllMenuItem.setMnemonic('S');
 				saveAllMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_S, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+				saveAllMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/themeeditor/icons/menu-saveall.svg"));
 				saveAllMenuItem.addActionListener(e -> saveAll());
 				fileMenu.add(saveAllMenuItem);
 				fileMenu.addSeparator();
@@ -1188,13 +1224,19 @@ class FlatThemeFileEditor
 		//======== controlPanel ========
 		{
 			controlPanel.setLayout(new MigLayout(
-				"hidemode 3",
+				"insets panel,hidemode 3",
 				// columns
 				"[fill]" +
 				"[grow,fill]" +
 				"[fill]",
 				// rows
 				"[]"));
+
+			//======== macFullWindowContentButtonsPlaceholder ========
+			{
+				macFullWindowContentButtonsPlaceholder.setLayout(new FlowLayout());
+			}
+			controlPanel.add(macFullWindowContentButtonsPlaceholder, "west");
 
 			//---- directoryLabel ----
 			directoryLabel.setText("Directory:");
@@ -1209,6 +1251,7 @@ class FlatThemeFileEditor
 
 			//---- openDirectoryButton ----
 			openDirectoryButton.setFocusable(false);
+			openDirectoryButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/themeeditor/icons/menu-open.svg"));
 			openDirectoryButton.addActionListener(e -> openDirectory());
 			controlPanel.add(openDirectoryButton, "cell 2 0");
 		}
@@ -1227,6 +1270,9 @@ class FlatThemeFileEditor
 		lafButtonGroup.add(lightLafMenuItem);
 		lafButtonGroup.add(darkLafMenuItem);
 		// JFormDesigner - End of component initialization  //GEN-END:initComponents
+
+		// on macOS, panel on left side of control bar is a placeholder for title bar buttons in fullWindowContent mode
+		macFullWindowContentButtonsPlaceholder.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER, "mac" );
 	}
 
 	// JFormDesigner - Variables declaration - DO NOT MODIFY  //GEN-BEGIN:variables
@@ -1268,13 +1314,9 @@ class FlatThemeFileEditor
 	private static class SortedComboBoxModel<E>
 		extends DefaultComboBoxModel<E>
 	{
-		private Comparator<E> comparator;
+		private final Comparator<E> comparator;
 
-		public SortedComboBoxModel( E[] items ) {
-			this( items, null );
-		}
-
-		public SortedComboBoxModel( E[] items, Comparator<E> c ) {
+		SortedComboBoxModel( E[] items, Comparator<E> c ) {
 			super( sort( items, c ) );
 			this.comparator = c;
 		}
@@ -1285,7 +1327,7 @@ class FlatThemeFileEditor
 				super.addElement( obj );
 			} else {
 				int index = binarySearch( this, obj, comparator );
-				insertElementAt( obj, (index < 0) ? ((-index)-1) : index );
+				insertElementAt( obj, (index < 0) ? (-index - 1) : index );
 			}
 		}
 

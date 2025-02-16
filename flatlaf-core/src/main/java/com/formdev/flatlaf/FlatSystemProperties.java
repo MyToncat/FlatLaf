@@ -82,7 +82,7 @@ public interface FlatSystemProperties
 	 * {@link FlatClientProperties#USE_WINDOW_DECORATIONS} and
 	 * UI default {@code TitlePane.useWindowDecorations}.
 	 * <p>
-	 * (requires Window 10/11)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
 	 * <strong>Default</strong> none
@@ -99,11 +99,14 @@ public interface FlatSystemProperties
 	 * Setting this to {@code false} disables using JetBrains Runtime custom window decorations.
 	 * Then FlatLaf native window decorations are used.
 	 * <p>
-	 * (requires Window 10/11)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
 	 * <strong>Default</strong> {@code false} (since v2; was {@code true} in v1)
+	 *
+	 * @deprecated No longer used since FlatLaf 3.3. Retained for API compatibility.
 	 */
+	@Deprecated
 	String USE_JETBRAINS_CUSTOM_DECORATIONS = "flatlaf.useJetBrainsCustomDecorations";
 
 	/**
@@ -117,7 +120,7 @@ public interface FlatSystemProperties
 	 * {@link FlatClientProperties#MENU_BAR_EMBEDDED} and
 	 * UI default {@code TitlePane.menuBarEmbedded}.
 	 * <p>
-	 * (requires Window 10/11)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
 	 * <strong>Default</strong> none
@@ -131,6 +134,18 @@ public interface FlatSystemProperties
 	 * <strong>Default</strong> {@code true}
 	 */
 	String ANIMATION = "flatlaf.animation";
+
+	/**
+	 * Specifies whether native rounded popup borders should be used (if supported by operating system).
+	 * <p>
+	 * (requires Windows 11 or macOS)
+	 * <p>
+	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
+	 * <strong>Default</strong> {@code true}; except in FlatLaf 3.5.x on macOS 14.4+ where it was {@code false}
+	 *
+	 * @since 3.5.2
+	 */
+	String USE_ROUNDED_POPUP_BORDER = "flatlaf.useRoundedPopupBorder";
 
 	/**
 	 * Specifies whether vertical text position is corrected when UI is scaled on HiDPI screens.
@@ -150,28 +165,66 @@ public interface FlatSystemProperties
 	 * <p>
 	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
 	 * <strong>Default</strong> {@code true}
+	 *
 	 * @since 2.5
 	 */
 	String UPDATE_UI_ON_SYSTEM_FONT_CHANGE = "flatlaf.updateUIOnSystemFontChange";
 
 	/**
-	 * Specifies a directory in which the native FlatLaf libraries have been extracted.
+	 * Specifies whether FlatLaf native library should be used.
+	 * <p>
+	 * Setting this to {@code false} disables loading native library,
+	 * which also disables some features that depend on the native library.
+	 * <p>
+	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
+	 * <strong>Default</strong> {@code true}
+	 *
+	 * @since 3.2
+	 */
+	String USE_NATIVE_LIBRARY = "flatlaf.useNativeLibrary";
+
+	/**
+	 * Specifies a directory in which the FlatLaf native libraries are searched for.
 	 * The path can be absolute or relative to current application working directory.
 	 * This can be used to avoid extraction of the native libraries to the temporary directory at runtime.
 	 * <p>
-	 * If the value is {@code "system"}, then {@link System#loadLibrary(String)} is
-	 * used to load the native library.
-	 * Searches for the native library in classloader of caller
+	 * If the value is {@code "system"} (supported since FlatLaf 2.6),
+	 * then {@link System#loadLibrary(String)} is used to load the native library.
+	 * This searches for the native library in classloader of caller
 	 * (using {@link ClassLoader#findLibrary(String)}) and in paths specified
 	 * in system properties {@code sun.boot.library.path} and {@code java.library.path}.
-	 * (supported since FlatLaf 2.6)
 	 * <p>
-	 * If the native library can not loaded from the given path (or via {@link System#loadLibrary(String)}),
+	 * If the native library can not be loaded from the given path (or via {@link System#loadLibrary(String)}),
 	 * then the embedded native library is extracted to the temporary directory and loaded from there.
+	 * <p>
+	 * The file names of the native libraries must be either:
+	 * <ul>
+	 *   <li>the same as in flatlaf.jar in package 'com/formdev/flatlaf/natives' (required for "system") or
+	 *   <li>when downloaded from Maven central then as described here:
+	 *     <a href="https://www.formdev.com/flatlaf/native-libraries/">https://www.formdev.com/flatlaf/native-libraries/</a>
+	 *     (requires FlatLaf 3.4)
+	 * </ul>
+	 * <p>
+	 * <strong>Note</strong>: Since FlatLaf 3.1 it is recommended to download the
+	 * FlatLaf native libraries from Maven central and distribute them with your
+	 * application in the same directory as flatlaf.jar.
+	 * Then it is <strong>not necessary</strong> to set this system property.
+	 * See <a href="https://www.formdev.com/flatlaf/native-libraries/">https://www.formdev.com/flatlaf/native-libraries/</a>
+	 * for details.
 	 *
 	 * @since 2
 	 */
 	String NATIVE_LIBRARY_PATH = "flatlaf.nativeLibraryPath";
+
+	/**
+	 * Specifies whether safe triangle is used to improve usability of submenus.
+	 * <p>
+	 * <strong>Allowed Values</strong> {@code false} and {@code true}<br>
+	 * <strong>Default</strong> {@code true}
+	 *
+	 * @since 3.5.1
+	 */
+	String USE_SUB_MENU_SAFE_TRIANGLE = "flatlaf.useSubMenuSafeTriangle";
 
 	/**
 	 * Checks whether a system property is set and returns {@code true} if its value

@@ -17,6 +17,8 @@
 package com.formdev.flatlaf;
 
 import java.awt.Color;
+import java.awt.IllegalComponentStateException;
+import java.awt.Window;
 import java.util.Objects;
 import javax.swing.JComponent;
 import javax.swing.SwingConstants;
@@ -31,7 +33,7 @@ public interface FlatClientProperties
 	//---- JButton ------------------------------------------------------------
 
 	/**
-	 * Specifies type of a button.
+	 * Specifies type of button.
 	 * <p>
 	 * <strong>Components</strong> {@link javax.swing.JButton} and {@link javax.swing.JToggleButton}<br>
 	 * <strong>Value type</strong> {@link java.lang.String}<br>
@@ -101,6 +103,17 @@ public interface FlatClientProperties
 	String BUTTON_TYPE_BORDERLESS = "borderless";
 
 	/**
+	 * Specifies whether the button preferred size will be made square (quadratically).
+	 * <p>
+	 * <strong>Components</strong> {@link javax.swing.JButton} and {@link javax.swing.JToggleButton}<br>
+	 * <strong>Value type</strong> {@link java.lang.Boolean}
+	 */
+	String SQUARE_SIZE = "JButton.squareSize";
+
+
+	//---- JCheckBox ----------------------------------------------------------
+
+	/**
 	 * Specifies selected state of a checkbox.
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JCheckBox}<br>
@@ -116,13 +129,6 @@ public interface FlatClientProperties
 	 */
 	String SELECTED_STATE_INDETERMINATE = "indeterminate";
 
-	/**
-	 * Specifies whether the button preferred size will be made square (quadratically).
-	 * <p>
-	 * <strong>Components</strong> {@link javax.swing.JButton} and {@link javax.swing.JToggleButton}<br>
-	 * <strong>Value type</strong> {@link java.lang.Boolean}
-	 */
-	String SQUARE_SIZE = "JButton.squareSize";
 
 	//---- JComponent ---------------------------------------------------------
 
@@ -254,19 +260,155 @@ public interface FlatClientProperties
 	String COMPONENT_FOCUS_OWNER = "JComponent.focusOwner";
 
 	/**
-	 * Specifies whether a component in an embedded menu bar should behave as caption
+	 * Specifies whether a component shown in a window title bar area should behave as caption
 	 * (left-click allows moving window, right-click shows window system menu).
-	 * The component does not receive mouse pressed/released/clicked/dragged events,
+	 * The caption component does not receive mouse pressed/released/clicked/dragged events,
 	 * but it gets mouse entered/exited/moved events.
 	 * <p>
+	 * Since 3.4, this client property also supports using a function that can check
+	 * whether a given location in the component should behave as caption.
+	 * Useful for components that do not use mouse input on whole component bounds.
+	 *
+	 * <pre>{@code
+	 * myComponent.putClientProperty( "JComponent.titleBarCaption",
+	 *     (Function<Point, Boolean>) pt -> {
+	 *         // parameter pt contains mouse location (in myComponent coordinates)
+	 *         // return true if the component is not interested in mouse input at the given location
+	 *         // return false if the component wants process mouse input at the given location
+	 *         // return null if the component children should be checked
+	 *         return ...; // check here
+	 *     } );
+	 * }</pre>
+	 * <b>Warning</b>:
+	 * <ul>
+	 *   <li>This function is invoked often when mouse is moved over window title bar area
+	 *       and should therefore return quickly.
+	 *   <li>This function is invoked on 'AWT-Windows' thread (not 'AWT-EventQueue' thread)
+	 *       while processing Windows messages.
+	 *       It <b>must not</b> change any component property or layout because this could cause a dead lock.
+	 * </ul>
+	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JComponent}<br>
-	 * <strong>Value type</strong> {@link java.lang.Boolean}
+	 * <strong>Value type</strong> {@link java.lang.Boolean} or {@link java.util.function.Function}&lt;Point, Boolean&gt;
 	 *
 	 * @since 2.5
 	 */
 	String COMPONENT_TITLE_BAR_CAPTION = "JComponent.titleBarCaption";
 
+
+	//---- Panel --------------------------------------------------------------
+
+	/**
+	 * Marks the panel as placeholder for the iconfify/maximize/close buttons
+	 * in fullWindowContent mode. See {@link #FULL_WINDOW_CONTENT}.
+	 * <p>
+	 * If fullWindowContent mode is enabled, the preferred size of the panel is equal
+	 * to the size of the iconfify/maximize/close buttons. Otherwise is is {@code 0,0}.
+	 * <p>
+	 * You're responsible to layout that panel at the top-left or top-right corner,
+	 * depending on platform, where the iconfify/maximize/close buttons are located.
+	 * <p>
+	 * Syntax of the value string is: {@code "win|mac [horizontal|vertical] [zeroInFullScreen] [leftToRight|rightToLeft]"}.
+	 * <p>
+	 * The string must start with {@code "win"} (for Windows or Linux) or
+	 * with {@code "mac"} (for macOS) and specifies the platform where the placeholder
+	 * should be used. On macOS, you need the placeholder in the top-left corner,
+	 * but on Windows/Linux you need it in the top-right corner. So if your application supports
+	 * fullWindowContent mode on both platforms, you can add two placeholders to your layout
+	 * and FlatLaf automatically uses only one of them. The other gets size {@code 0,0}.
+	 * <p>
+	 * Optionally, you can append following options to the value string (separated by space characters):
+	 * <ul>
+	 *   <li>{@code "horizontal"} - preferred height is zero
+	 *   <li>{@code "vertical"} - preferred width is zero
+	 *   <li>{@code "zeroInFullScreen"} - in full-screen mode on macOS, preferred size is {@code 0,0}
+	 *   <li>{@code "leftToRight"} - in right-to-left component orientation, preferred size is {@code 0,0}
+	 *   <li>{@code "rightToLeft"} - in left-to-right component orientation, preferred size is {@code 0,0}
+	 * </ul>
+	 *
+	 * Example for adding placeholder to top-left corner on macOS:
+	 * <pre>{@code
+	 * JPanel placeholder = new JPanel();
+	 * placeholder.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER, "mac" );
+     *
+     * JToolBar toolBar = new JToolBar();
+     * // add tool bar items
+     *
+	 * JPanel toolBarPanel = new JPanel( new BorderLayout() );
+	 * toolBarPanel.add( placeholder, BorderLayout.WEST );
+	 * toolBarPanel.add( toolBar, BorderLayout.CENTER );
+	 *
+	 * frame.getContentPane().add( toolBarPanel, BorderLayout.NORTH );
+	 * }</pre>
+	 *
+	 * Or add placeholder as first item to the tool bar:
+	 * <pre>{@code
+	 * JPanel placeholder = new JPanel();
+	 * placeholder.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER, "mac" );
+	 *
+	 * JToolBar toolBar = new JToolBar();
+	 * toolBar.add( placeholder );
+	 * // add tool bar items
+	 *
+	 * frame.getContentPane().add( toolBar, BorderLayout.NORTH );
+	 * }</pre>
+	 *
+	 * If a tabbed pane is located at the top, you can add the placeholder
+	 * as leading component to that tabbed pane:
+	 * <pre>{@code
+	 * JPanel placeholder = new JPanel();
+	 * placeholder.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER, "mac" );
+	 *
+	 * tabbedPane.putClientProperty( FlatClientProperties.TABBED_PANE_LEADING_COMPONENT, placeholder );
+	 * }</pre>
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JPanel}<br>
+	 * <strong>Value type</strong> {@link java.lang.String}
+	 *
+	 * @since 3.4
+	 */
+	String FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER = "FlatLaf.fullWindowContent.buttonsPlaceholder";
+
+
 	//---- Popup --------------------------------------------------------------
+
+	/**
+	 * Specifies the popup border corner radius if the component is shown in a popup
+	 * or if the component is the owner of another component that is shown in a popup.
+	 * <p>
+	 * Note that this is not available on all platforms since it requires special support.
+	 * Supported platforms:
+	 * <ul>
+	 * <li><strong>Windows 11</strong>: Only two corner radiuses are supported
+	 *     by the OS: {@code DWMWCP_ROUND} is 8px and {@code DWMWCP_ROUNDSMALL} is 4px.
+	 *     If this value is {@code 1 - 4}, then {@code DWMWCP_ROUNDSMALL} is used.
+	 *     If it is {@code >= 5}, then {@code DWMWCP_ROUND} is used.
+	 * <li><strong>macOS</strong> (10.14 and later): Any corner radius is supported.
+	 * </ul>
+	 * <strong>Component</strong> {@link javax.swing.JComponent}<br>
+	 * <strong>Value type</strong> {@link java.lang.Integer}<br>
+	 *
+	 * @since 3.1
+	 */
+	String POPUP_BORDER_CORNER_RADIUS = "Popup.borderCornerRadius";
+
+	/**
+	 * Specifies the popup rounded border width if the component is shown in a popup
+	 * or if the component is the owner of another component that is shown in a popup.
+	 * <p>
+	 * Only used if popup uses rounded border.
+	 * <p>
+	 * Note that this is not available on all platforms since it requires special support.
+	 * Supported platforms:
+	 * <ul>
+	 * <li><strong>macOS</strong> (10.14 and later)
+	 * </ul>
+	 * <strong>Component</strong> {@link javax.swing.JComponent}<br>
+	 * <strong>Value type</strong> {@link java.lang.Integer} or {@link java.lang.Float}<br>
+	 *
+	 * @since 3.3
+	 */
+	String POPUP_ROUNDED_BORDER_WIDTH = "Popup.roundedBorderWidth";
 
 	/**
 	 * Specifies whether a drop shadow is painted if the component is shown in a popup
@@ -286,6 +428,7 @@ public interface FlatClientProperties
 	 */
 	String POPUP_FORCE_HEAVY_WEIGHT = "Popup.forceHeavyWeight";
 
+
 	//---- JProgressBar -------------------------------------------------------
 
 	/**
@@ -304,6 +447,7 @@ public interface FlatClientProperties
 	 */
 	String PROGRESS_BAR_SQUARE = "JProgressBar.square";
 
+
 	//---- JRootPane ----------------------------------------------------------
 
 	/**
@@ -317,7 +461,7 @@ public interface FlatClientProperties
 	 * {@link FlatSystemProperties#USE_WINDOW_DECORATIONS}, but higher priority
 	 * than UI default {@code TitlePane.useWindowDecorations}.
 	 * <p>
-	 * (requires Window 10)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
@@ -337,12 +481,54 @@ public interface FlatClientProperties
 	 * {@link FlatSystemProperties#MENUBAR_EMBEDDED}, but higher priority
 	 * than UI default {@code TitlePane.menuBarEmbedded}.
 	 * <p>
-	 * (requires Window 10)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 */
 	String MENU_BAR_EMBEDDED = "JRootPane.menuBarEmbedded";
+
+	/**
+	 * Specifies whether the content pane (and the glass pane) should be extended
+	 * into the window title bar area
+	 * (requires enabled window decorations). Default is {@code false}.
+	 * <p>
+	 * On macOS, use client property {@code apple.awt.fullWindowContent}
+	 * (see <a href="https://www.formdev.com/flatlaf/macos/#full_window_content">macOS Full window content</a>).
+	 * <p>
+	 * Setting this enables/disables full window content
+	 * for the {@code JFrame} or {@code JDialog} that contains the root pane.
+	 * <p>
+	 * If {@code true}, the content pane (and the glass pane) is extended into
+	 * the title bar area. The window icon and title are hidden.
+	 * Only the iconfify/maximize/close buttons stay visible in the upper right corner
+	 * (and overlap the content pane).
+	 * <p>
+	 * The user can left-click-and-drag on the title bar area to move the window,
+	 * except when clicking on a component that processes mouse events (e.g. buttons or menus).
+	 * <p>
+	 * (requires Windows 10/11)
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
+	 * <strong>Value type</strong> {@link java.lang.Boolean}
+	 *
+	 * @since 3.4
+	 */
+	String FULL_WINDOW_CONTENT = "FlatLaf.fullWindowContent";
+
+	/**
+	 * Contains the current bounds of the iconfify/maximize/close buttons
+	 * (in root pane coordinates) if fullWindowContent mode is enabled.
+	 * Otherwise its value is {@code null}.
+	 * <p>
+	 * <b>Note</b>: Do not set this client property. It is set by FlatLaf.
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
+	 * <strong>Value type</strong> {@link java.awt.Rectangle}
+	 *
+	 * @since 3.4
+	 */
+	String FULL_WINDOW_CONTENT_BUTTONS_BOUNDS = "FlatLaf.fullWindowContent.buttonsBounds";
 
 	/**
 	 * Specifies whether the window icon should be shown in the window title bar
@@ -353,7 +539,7 @@ public interface FlatClientProperties
 	 * <p>
 	 * This client property has higher priority than UI default {@code TitlePane.showIcon}.
 	 * <p>
-	 * (requires Window 10)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
@@ -369,6 +555,8 @@ public interface FlatClientProperties
 	 * Setting this shows/hides the windows title
 	 * for the {@code JFrame} or {@code JDialog} that contains the root pane.
 	 * <p>
+	 * (requires Windows 10/11)
+	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 *
@@ -377,11 +565,13 @@ public interface FlatClientProperties
 	String TITLE_BAR_SHOW_TITLE = "JRootPane.titleBarShowTitle";
 
 	/**
-	 * Specifies whether the "iconfify" button should be shown in the window title bar
+	 * Specifies whether the "iconify" button should be shown in the window title bar
 	 * (requires enabled window decorations). Default is {@code true}.
 	 * <p>
-	 * Setting this shows/hides the "iconfify" button
+	 * Setting this shows/hides the "iconify" button
 	 * for the {@code JFrame} that contains the root pane.
+	 * <p>
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
@@ -397,6 +587,8 @@ public interface FlatClientProperties
 	 * Setting this shows/hides the "maximize/restore" button
 	 * for the {@code JFrame} that contains the root pane.
 	 * <p>
+	 * (requires Windows 10/11)
+	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 *
@@ -411,6 +603,8 @@ public interface FlatClientProperties
 	 * Setting this shows/hides the "close" button
 	 * for the {@code JFrame} or {@code JDialog} that contains the root pane.
 	 * <p>
+	 * (requires Windows 10/11)
+	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 *
@@ -421,7 +615,7 @@ public interface FlatClientProperties
 	/**
 	 * Background color of window title bar (requires enabled window decorations).
 	 * <p>
-	 * (requires Window 10)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.awt.Color}
@@ -433,7 +627,7 @@ public interface FlatClientProperties
 	/**
 	 * Foreground color of window title bar (requires enabled window decorations).
 	 * <p>
-	 * (requires Window 10)
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.awt.Color}
@@ -443,8 +637,22 @@ public interface FlatClientProperties
 	String TITLE_BAR_FOREGROUND = "JRootPane.titleBarForeground";
 
 	/**
+	 * Specifies the preferred height of title bar (requires enabled window decorations).
+	 * <p>
+	 * (requires Windows 10/11)
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
+	 * <strong>Value type</strong> {@link java.lang.Integer}
+	 *
+	 * @since 3.5.2
+	 */
+	String TITLE_BAR_HEIGHT = "JRootPane.titleBarHeight";
+
+	/**
 	 * Specifies whether the glass pane should have full height and overlap the title bar,
 	 * if FlatLaf window decorations are enabled. Default is {@code false}.
+	 * <p>
+	 * (requires Windows 10/11)
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
@@ -452,6 +660,37 @@ public interface FlatClientProperties
 	 * @since 3.1
 	 */
 	String GLASS_PANE_FULL_HEIGHT = "JRootPane.glassPaneFullHeight";
+
+	/**
+	 * Specifies the style of the window title bar.
+	 * Besides the default title bar style, you can use a Utility-style title bar,
+	 * which is smaller than the default title bar.
+	 * <p>
+	 * On Windows 10/11, this requires FlatLaf window decorations.
+	 * On macOS, Java supports this out of the box.
+	 * <p>
+	 * Note that this client property must be set before the window becomes displayable.
+	 * Otherwise, an {@link IllegalComponentStateException} is thrown.
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
+	 * <strong>Value type</strong> {@link java.lang.String}<br>
+	 * <strong>Allowed Values</strong>
+	 *     {@link #WINDOW_STYLE_SMALL}
+	 *
+	 * @since 3.2
+	 */
+	String WINDOW_STYLE = "Window.style";
+
+	/**
+	 * The window has Utility-style title bar, which is smaller than default title bar.
+	 * <p>
+	 * This is the same as using {@link Window#setType}( {@link Window.Type#UTILITY} ).
+	 *
+	 * @see #WINDOW_STYLE
+	 * @since 3.2
+	 */
+	String WINDOW_STYLE_SMALL = "small";
+
 
 	//---- JScrollBar / JScrollPane -------------------------------------------
 
@@ -470,6 +709,7 @@ public interface FlatClientProperties
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 */
 	String SCROLL_PANE_SMOOTH_SCROLLING = "JScrollPane.smoothScrolling";
+
 
 	//---- JSplitPane ---------------------------------------------------------
 
@@ -504,6 +744,7 @@ public interface FlatClientProperties
 	 * @since 2.2
 	 */
 	String SPLIT_PANE_EXPANDABLE_SIDE_RIGHT = "right";
+
 
 	//---- JTabbedPane --------------------------------------------------------
 
@@ -770,7 +1011,7 @@ public interface FlatClientProperties
 	 * <strong>Component</strong> {@link javax.swing.JTabbedPane}<br>
 	 * <strong>Value type</strong> {@link java.lang.Integer} or {@link java.lang.String}<br>
 	 * <strong>Allowed Values</strong>
-	 *     {@link SwingConstants#LEADING} (default)
+	 *     {@link SwingConstants#LEADING} (default),
 	 *     {@link SwingConstants#TRAILING},
 	 *     {@link SwingConstants#CENTER},
 	 *     {@link #TABBED_PANE_ALIGN_LEADING} (default),
@@ -875,6 +1116,59 @@ public interface FlatClientProperties
 	String TABBED_PANE_TAB_ICON_PLACEMENT = "JTabbedPane.tabIconPlacement";
 
 	/**
+	 * Specifies the rotation of the tabs (title, icon, etc.).
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JTabbedPane}<br>
+	 * <strong>Value type</strong> {@link java.lang.Integer} or {@link java.lang.String}<br>
+	 * <strong>Allowed Values</strong>
+	 *     {@link SwingConstants#LEFT},
+	 *     {@link SwingConstants#RIGHT},
+	 *     {@link #TABBED_PANE_TAB_ROTATION_NONE} (default),
+	 *     {@link #TABBED_PANE_TAB_ROTATION_AUTO},
+	 *     {@link #TABBED_PANE_TAB_ROTATION_LEFT} or
+	 *     {@link #TABBED_PANE_TAB_ROTATION_RIGHT}
+	 *
+	 * @since 3.3
+	 */
+	String TABBED_PANE_TAB_ROTATION = "JTabbedPane.tabRotation";
+
+	/**
+	 * Tabs are not rotated.
+	 *
+	 * @see #TABBED_PANE_TAB_ROTATION
+	 * @since 3.3
+	 */
+	String TABBED_PANE_TAB_ROTATION_NONE = "none";
+
+	/**
+	 * Tabs are rotated depending on tab placement.
+	 * <p>
+	 * For top and bottom tab placement, the tabs are not rotated.<br>
+	 * For left tab placement, the tabs are rotated counter-clockwise.<br>
+	 * For right tab placement, the tabs are rotated clockwise.
+	 *
+	 * @see #TABBED_PANE_TAB_ROTATION
+	 * @since 3.3
+	 */
+	String TABBED_PANE_TAB_ROTATION_AUTO = "auto";
+
+	/**
+	 * Tabs are rotated counter-clockwise.
+	 *
+	 * @see #TABBED_PANE_TAB_ROTATION
+	 * @since 3.3
+	 */
+	String TABBED_PANE_TAB_ROTATION_LEFT = "left";
+
+	/**
+	 * Tabs are rotated clockwise.
+	 *
+	 * @see #TABBED_PANE_TAB_ROTATION
+	 * @since 3.3
+	 */
+	String TABBED_PANE_TAB_ROTATION_RIGHT = "right";
+
+	/**
 	 * Specifies a component that will be placed at the leading edge of the tabs area.
 	 * <p>
 	 * For top and bottom tab placement, the laid out component size will be
@@ -899,6 +1193,7 @@ public interface FlatClientProperties
 	 * <strong>Value type</strong> {@link java.awt.Component}
 	 */
 	String TABBED_PANE_TRAILING_COMPONENT = "JTabbedPane.trailingComponent";
+
 
 	//---- JTextField ---------------------------------------------------------
 
@@ -1069,6 +1364,7 @@ public interface FlatClientProperties
 	 */
 	String TEXT_FIELD_CLEAR_CALLBACK = "JTextField.clearCallback";
 
+
 	//---- JToggleButton ------------------------------------------------------
 
 	/**
@@ -1076,8 +1372,8 @@ public interface FlatClientProperties
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JToggleButton}<br>
 	 * <strong>Value type</strong> {@link java.lang.Integer}<br>
-	 * <strong>SupportedValues:</strong>
-	 *     {@link SwingConstants#BOTTOM} (default)
+	 * <strong>Allowed Values</strong>
+	 *     {@link SwingConstants#BOTTOM} (default),
 	 *     {@link SwingConstants#TOP},
 	 *     {@link SwingConstants#LEFT} or
 	 *     {@link SwingConstants#RIGHT}
@@ -1110,15 +1406,26 @@ public interface FlatClientProperties
 	 */
 	String TAB_BUTTON_SELECTED_BACKGROUND = "JToggleButton.tab.selectedBackground";
 
+
 	//---- JTree --------------------------------------------------------------
 
 	/**
-	 * Override if a tree shows a wide selection. Default is {@code true}.
+	 * Specifies whether tree shows a wide selection. Default is {@code true}.
 	 * <p>
 	 * <strong>Component</strong> {@link javax.swing.JTree}<br>
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 */
 	String TREE_WIDE_SELECTION = "JTree.wideSelection";
+
+	/**
+	 * Specifies whether tree uses a wide cell renderer. Default is {@code false}.
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JTree}<br>
+	 * <strong>Value type</strong> {@link java.lang.Boolean}
+	 *
+	 * @since 3.6
+	 */
+	String TREE_WIDE_CELL_RENDERER = "JTree.wideCellRenderer";
 
 	/**
 	 * Specifies whether tree item selection is painted. Default is {@code true}.
@@ -1128,6 +1435,45 @@ public interface FlatClientProperties
 	 * <strong>Value type</strong> {@link java.lang.Boolean}
 	 */
 	String TREE_PAINT_SELECTION = "JTree.paintSelection";
+
+
+	//---- macOS --------------------------------------------------------------
+
+	/**
+	 * Specifies the spacing around the macOS window close/minimize/zoom buttons.
+	 * Useful if <a href="https://www.formdev.com/flatlaf/macos/#full_window_content">full window content</a>
+	 * is enabled.
+	 * <p>
+	 * (requires macOS 10.14+ for "medium" spacing and macOS 11+ for "large" spacing, requires Java 17+)
+	 * <p>
+	 * <strong>Component</strong> {@link javax.swing.JRootPane}<br>
+	 * <strong>Value type</strong> {@link java.lang.String}<br>
+	 * <strong>Allowed Values</strong>
+	 *     {@link #MACOS_WINDOW_BUTTONS_SPACING_MEDIUM} or
+	 *     {@link #MACOS_WINDOW_BUTTONS_SPACING_LARGE} (requires macOS 11+)
+	 *
+	 * @since 3.4
+	 */
+	String MACOS_WINDOW_BUTTONS_SPACING = "FlatLaf.macOS.windowButtonsSpacing";
+
+	/**
+	 * Add medium spacing around the macOS window close/minimize/zoom buttons.
+	 *
+	 * @see #MACOS_WINDOW_BUTTONS_SPACING
+	 * @since 3.4
+	 */
+	String MACOS_WINDOW_BUTTONS_SPACING_MEDIUM = "medium";
+
+	/**
+	 * Add large spacing around the macOS window close/minimize/zoom buttons.
+	 * <p>
+	 * (requires macOS 11+; "medium" is used on older systems)
+	 *
+	 * @see #MACOS_WINDOW_BUTTONS_SPACING
+	 * @since 3.4
+	 */
+	String MACOS_WINDOW_BUTTONS_SPACING_LARGE = "large";
+
 
 	//---- helper methods -----------------------------------------------------
 

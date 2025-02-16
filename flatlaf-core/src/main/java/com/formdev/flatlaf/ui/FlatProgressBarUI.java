@@ -18,6 +18,7 @@ package com.formdev.flatlaf.ui;
 
 import static com.formdev.flatlaf.FlatClientProperties.*;
 import java.awt.Dimension;
+import java.awt.EventQueue;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -87,6 +88,17 @@ public class FlatProgressBarUI
 	}
 
 	@Override
+	public void uninstallUI( JComponent c ) {
+		if( !EventQueue.isDispatchThread() && progressBar.isIndeterminate() ) {
+			LoggingFacade.INSTANCE.logSevere(
+				"FlatLaf: Uninstalling indeterminate progress bar UI not on AWT thread may throw NPE in FlatProgressBarUI.paint(). Use SwingUtilities.invokeLater().",
+				new IllegalStateException() );
+		}
+
+		super.uninstallUI( c );
+	}
+
+	@Override
 	protected void installDefaults() {
 		super.installDefaults();
 
@@ -110,17 +122,25 @@ public class FlatProgressBarUI
 
 		propertyChangeListener = e -> {
 			switch( e.getPropertyName() ) {
+				case "indeterminate":
+					if( !EventQueue.isDispatchThread() && !progressBar.isIndeterminate() ) {
+						LoggingFacade.INSTANCE.logSevere(
+							"FlatLaf: Using JProgressBar.setIndeterminate(false) not on AWT thread may throw NPE in FlatProgressBarUI.paint(). Use SwingUtilities.invokeLater().",
+							new IllegalStateException() );
+					}
+					break;
+
 				case PROGRESS_BAR_LARGE_HEIGHT:
 				case PROGRESS_BAR_SQUARE:
 					progressBar.revalidate();
-					progressBar.repaint();
+					HiDPIUtils.repaint( progressBar );
 					break;
 
 				case STYLE:
 				case STYLE_CLASS:
 					installStyle();
 					progressBar.revalidate();
-					progressBar.repaint();
+					HiDPIUtils.repaint( progressBar );
 					break;
 			}
 		};
@@ -274,6 +294,6 @@ public class FlatProgressBarUI
 		// Only solution is to repaint whole progress bar.
 		double systemScaleFactor = UIScale.getSystemScaleFactor( progressBar.getGraphicsConfiguration() );
 		if( (int) systemScaleFactor != systemScaleFactor )
-			progressBar.repaint();
+			HiDPIUtils.repaint( progressBar );
 	}
 }

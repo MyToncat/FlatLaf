@@ -1,7 +1,491 @@
 FlatLaf Change Log
 ==================
 
-## 3.1-SNAPSHOT
+## 3.6-SNAPSHOT
+
+#### New features and improvements
+
+- macOS: Re-enabled rounded popup border (see PR #772) on macOS 14.4+ (was
+  disabled in 3.5.x).
+- CheckBox: Support styling indeterminate state of
+  [tri-state check boxes](https://www.javadoc.io/doc/com.formdev/flatlaf-extras/latest/com/formdev/flatlaf/extras/components/FlatTriStateCheckBox.html).
+  (PR #936; issue #919)
+- List: Support for alternate row highlighting. (PR #939)
+- Tree: Support for alternate row highlighting. (PR #903)
+- Tree: Support wide cell renderer. (issue #922)
+- Extras: `FlatSVGIcon` color filters now can access painting component to
+  implement component state based color mappings. (issue #906)
+- Linux: Added `libflatlaf-linux-arm64.so` for Linux on ARM64. (issue #899)
+- IntelliJ Themes: Updated to latest versions.
+
+#### Fixed bugs
+
+- Button: Fixed background and foreground colors for `borderless` and
+  `toolBarButton` style default buttons (`JButton.isDefaultButton()` is `true`).
+  (issue #947)
+- FileChooser: Improved performance when navigating to large directories with
+  thousands of files. (issue #953)
+- PopupFactory: Fixed NPE on Windows 10 when `owner` is `null`. (issue #952)
+- Popup: On Windows 10, drop shadow of heavy-weight popup was not updated if
+  popup moved/resized. (issue #942)
+- FlatLaf window decorations:
+  - Minimize and maximize icons were not shown for custom scale factors less
+    than 100% (e.g. `-Dflatlaf.uiScale=75%`). (issue #951)
+  - Linux: Fixed occasional maximizing of window when single-clicking the
+    window's title bar. (issue #637)
+- Styling: MigLayout visual padding was not updated after applying style to
+  Button, ComboBox, Spinner, TextField (and subclasses) and ToggleButton. (issue
+  #965)
+- Linux: Popups (menus and combobox lists) were not hidden when window is moved,
+  resized, maximized, restored, iconified or switched to another window. (issue
+  #962)
+- Fixed loading FlatLaf UI delegate classes when using FlatLaf in special
+  application where multiple class loaders are involved. E.g. in Eclipse plugin
+  or in LibreOffice extension. (issues #955 and #851)
+
+
+## 3.5.4
+
+#### Fixed bugs
+
+- HTML: Fixed NPE when using HTML text on a component with `null` font. (issue
+  #930; PR #931; regression in 3.5)
+- Linux: Fixed NPE when using FlatLaf window decorations and switching theme.
+  (issue #933; regression in 3.5.3)
+
+
+## 3.5.3
+
+#### Fixed bugs
+
+- HTML: Fixed wrong rendering if HTML text contains `<style>` tag with
+  attributes (e.g. `<style type='text/css'>`). (issue #905; regression in 3.5.1)
+- FlatLaf window decorations:
+  - Windows: Fixed possible deadlock with TabbedPane in window title area in
+    "full window content" mode. (issue #909)
+  - Windows: Fixed wrong layout in maximized frame after changing screen scale
+    factor. (issue #904)
+  - Linux: Fixed continuous cursor toggling between resize and standard cursor
+    when resizing window. (issue #907)
+  - Fixed sometimes broken window moving with SplitPane in window title area in
+    "full window content" mode. (issue #926)
+- Popup: On Windows 10, fixed misplaced popup drop shadow. (issue #911;
+  regression in 3.5)
+- Popup: Fixed NPE if `GraphicsConfiguration` is `null` on Windows. (issue #921)
+- Theme Editor: Fixed using color picker on secondary screen.
+- Fixed detection of Windows 11 if custom exe launcher does not specify Windows
+  10+ compatibility in application manifest. (issue #916)
+- Linux: Fixed slightly different font size (or letter width) used to paint HTML
+  text when default font family is _Cantarell_ (e.g. on Fedora). (issue #912)
+
+#### Other Changes
+
+- Class `FlatPropertiesLaf` now supports FlatLaf macOS themes as base themes.
+
+
+## 3.5.2
+
+#### Fixed bugs
+
+- Windows: Fixed repaint issues (ghosting) on some systems (probably depending
+  on graphics card/driver). This is done by setting Java system property
+  `sun.java2d.d3d.onscreen` to `false` (but only if `sun.java2d.d3d.onscreen`,
+  `sun.java2d.d3d` and `sun.java2d.noddraw` are not yet set), which disables
+  usage of Windows Direct3D (DirectX) onscreen surfaces. Component rendering
+  still uses Direct3D. (issue #887)
+- FlatLaf window decorations:
+  - Iconify/maximize/close buttons did not fill whole title bar height, if some
+    custom component in menu bar increases title bar height. (issue #897)
+  - Windows: Fixed possible application freeze when using custom component that
+    overrides `Component.contains(int x, int y)` and invokes
+    `SwingUtilities.convertPoint()` (or similar) from the overridden method.
+    (issue #878)
+- TextComponents: Fixed too fast scrolling in multi-line text components when
+  using touchpads (e.g. on macOS). (issue #892)
+- ToolBar: Fixed endless loop if button in Toolbar has focus and is made
+  invisible. (issue #884)
+
+#### Other Changes
+
+- FlatLaf window decorations: Added client property `JRootPane.titleBarHeight`
+  to allow specifying a (larger) preferred height for the title bar. (issue
+  #897)
+- Added system property `flatlaf.useRoundedPopupBorder` to allow disabling
+  native rounded popup borders on Windows 11 and macOS. On macOS 14.4+, where
+  rounded popup borders are disabled since FlatLaf 3.5 because of occasional
+  problems, you can use this to enable rounded popup borders (at your risk).
+
+
+## 3.5.1
+
+#### Fixed bugs
+
+- HTML: Fixed occasional cutoff wrapped text when using multi-line text in HTML
+  tags `<h1>`...`<h6>`, `<code>`, `<kbd>`, `<big>`, `<small>` or `<samp>`.
+  (issue #873; regression in 3.5)
+- Popup: Fixed `UnsupportedOperationException: PERPIXEL_TRANSLUCENT translucency
+  is not supported` exception on Haiku OS when showing popup (partly) outside of
+  window. (issue #869)
+- HiDPI: Fixed occasional wrong repaint areas when using
+  `HiDPIUtils.installHiDPIRepaintManager()`. (see PR #864)
+- Added system property `flatlaf.useSubMenuSafeTriangle` to allow disabling
+  submenu safe triangle (PR #490) for
+  [SWTSwing](https://github.com/Chrriis/SWTSwing). (issue #870)
+
+
+## 3.5
+
+#### New features and improvements
+
+- Table: Support rounded selection. (PR #856)
+- Button and ToggleButton: Added border colors for pressed and selected states.
+  (issue #848)
+- Label: Support painting background with rounded corners. (issue #842)
+- Popup: Fixed flicker of popups (e.g. tooltips) while they are moving (e.g.
+  following mouse pointer). (issues #832 and #672)
+- FileChooser: Wrap shortcuts in scroll pane. (issue #828)
+- Theme Editor: On macOS, use larger window title bar. (PR #779)
+
+#### Fixed bugs
+
+- macOS: Disabled rounded popup border (see PR #772) on macOS 14.4+ because it
+  may freeze the application and crash the macOS WindowServer process (reports
+  vary from Finder restarts to OS restarts). This is a temporary change until a
+  solution is found. See NetBeans issues
+  [apache/netbeans#7560](https://github.com/apache/netbeans/issues/7560#issuecomment-2226439215)
+  and
+  [apache/netbeans#6647](https://github.com/apache/netbeans/issues/6647#issuecomment-2070124442).
+- FlatLaf window decorations: Window top border on Windows 10 in "full window
+  content" mode was not fully repainted when activating or deactivating window.
+  (issue #809)
+- Button and ToggleButton: UI properties `[Toggle]Button.selectedForeground` and
+  `[Toggle]Button.pressedForeground` did not work for HTML text. (issue #848)
+- HTML: Fixed font sizes for HTML tags `<h1>`...`<h6>`, `<code>`, `<kbd>`,
+  `<big>`, `<small>` and `<samp>` in HTML text for components Button, CheckBox,
+  RadioButton, MenuItem (and subclasses), JideLabel, JideButton, JXBusyLabel and
+  JXHyperlink. Also fixed for Label and ToolTip if using Java 11+.
+- ScrollPane: Fixed/improved border painting at 125% - 175% scaling to avoid
+  different border thicknesses. (issue #743)
+- Table: Fixed painting of alternating rows below table if auto-resize mode is
+  `JTable.AUTO_RESIZE_OFF` and table width is smaller than scroll pane (was not
+  updated when table width changed and was painted on wrong side in
+  right-to-left component orientation).
+- Theme Editor: Fixed occasional empty window on startup on macOS.
+- FlatLaf window decorations: Fixed black line sometimes painted on top of
+  (native) window border on Windows 11. (issue #852)
+- HiDPI: Fixed incomplete component paintings at 125% or 175% scaling on Windows
+  where sometimes a 1px wide area at the right or bottom component edge is not
+  repainted. E.g. ScrollPane focus indicator border. (issues #860 and #582)
+
+#### Incompatibilities
+
+- ProgressBar: Log warning (including stack trace) when uninstalling
+  indeterminate progress bar UI or using `JProgressBar.setIndeterminate(false)`
+  not on AWT thread, because this may throw NPE in `FlatProgressBarUI.paint()`.
+  (issues #841 and #830)
+- Panel: Rounded background of panel with rounded corners is now painted even if
+  panel is not opaque. (issue #840)
+
+
+## 3.4.1
+
+#### Fixed bugs
+
+- SplitPane: Update divider when client property `JSplitPane.expandableSide`
+  changed.
+- TabbedPane: Fixed swapped back and forward scroll buttons when using
+  `TabbedPane.scrollButtonsPlacement = trailing` (regression in FlatLaf 3.3).
+- Fixed missing window top border on Windows 10 in "full window content" mode.
+  (issue #809)
+- Extras:
+  - `FlatSVGIcon` color filters now support linear gradients. (PR #817)
+  - `FlatSVGIcon`: Use log level `CONFIG` instead of `SEVERE` and allow
+    disabling logging. (issue #823)
+  - Added support for `JSplitPane.expandableSide` client property to
+    `FlatSplitPane`.
+- Native libraries: Added API version check to test whether native library
+  matches the JAR (bad builds could e.g. ship a newer JAR with an older
+  incompatible native library) and to test whether native methods can be invoked
+  (some security software allows loading native library but blocks method
+  invocation).
+- macOS: Fixed crash when running in WebSwing. (issue #826; regression in 3.4)
+
+#### Incompatibilities
+
+- File names of custom properties files for nested Laf classes now must include
+  name of enclosing class name. E.g. nested Laf class `IntelliJTheme.ThemeLaf`
+  used `ThemeLaf.properties` in previous versions, but now needs to be named
+  `IntelliJTheme$ThemeLaf.properties`.
+
+
+## 3.4
+
+#### New features and improvements
+
+- FlatLaf window decorations (Windows 10/11 and Linux): Support "full window
+  content" mode, which allows you to extend the content into the window title
+  bar. (PR #801)
+- macOS: Support larger window title bar close/minimize/zoom buttons spacing in
+  [full window content](https://www.formdev.com/flatlaf/macos/#full_window_content)
+  mode and introduced "buttons placeholder". (PR #779)
+- Native libraries:
+  - System property `flatlaf.nativeLibraryPath` now supports loading native
+    libraries named the same as on Maven central.
+  - Published `flatlaf-<version>-no-natives.jar` to Maven Central. This JAR is
+    equal to `flatlaf-<version>.jar`, except that it does not contain the
+    FlatLaf native libraries. The Maven "classifier" to use this JAR is
+    `no-natives`. You need to distribute the FlatLaf native libraries with your
+    application.
+    See https://www.formdev.com/flatlaf/native-libraries/ for more details.
+  - Improved log messages for loading fails.
+- Fonts: Updated **Inter** to
+  [v4.0](https://github.com/rsms/inter/releases/tag/v4.0).
+- Table: Select all text in cell editor when starting editing using `F2` key on
+  Windows or Linux. (issue #652)
+
+#### Fixed bugs
+
+- macOS: Setting window background (of undecorated window) to translucent color
+  (alpha < 255) did not show the window translucent. (issue #705)
+- JIDE CommandMenuBar: Fixed `ClassCastException` when JIDE command bar displays
+  `JideMenu` in popup. (PR #794)
+
+
+## 3.3
+
+#### New features and improvements
+
+- macOS (10.14+): Popups (`JPopupMenu`, `JComboBox`, `JToolTip`, etc.) now use
+  native macOS rounded borders. (PR #772; issue #715)
+- Native libraries: Added `libflatlaf-macos-arm64.dylib` and
+  `libflatlaf-macos-x86_64.dylib`. See also
+  https://www.formdev.com/flatlaf/native-libraries/.
+- ScrollPane: Support rounded border. (PR #713)
+- SplitPane: Support divider hover and pressed background colors. (PR #788)
+- TabbedPane: Support vertical tabs. (PR #758, issue #633)
+- TabbedPane: Paint rounded tab area background for rounded cards. (issue #717)
+- ToolBar: Added styling properties `separatorWidth` and `separatorColor`.
+
+#### Fixed bugs
+
+- Button and ToggleButton: Selected buttons did not use explicitly set
+  foreground color. (issue #756)
+- FileChooser: Catch NPE in Java 21 when getting icon for `.exe` files that use
+  default Windows exe icon. (see
+  [JDK-8320692](https://bugs.openjdk.org/browse/JDK-8320692))
+- OptionPane: Fixed styling custom panel background in `JOptionPane`. (issue
+  #761)
+- ScrollPane: Styling ScrollPane border properties did not work if view
+  component is a Table.
+- Table:
+  - Switching theme looses table grid and intercell spacing. (issues #733 and
+    #750)
+  - Fixed background of `boolean` columns when using alternating row colors.
+    (issue #780)
+  - Fixed border arc of components in complex table cell editors. (issue #786)
+- TableHeader:
+  - No longer temporary replace header cell renderer while painting. This avoids
+    a `StackOverflowError` in case that custom renderer does this too. (see
+    [NetBeans issue #6835](https://github.com/apache/netbeans/issues/6835)) This
+    also improves compatibility with custom table header implementations.
+  - Header cell renderer background/foreground colors were not restored after
+    hover if renderer uses `null` for background/foreground. (PR #790)
+- TabbedPane:
+  - Avoid unnecessary repainting whole tabbed pane content area when layouting
+    leading/trailing components.
+  - Avoid unnecessary repainting of selected tab on temporary changes.
+  - Fixed "endless" layouting and repainting when using nested tabbed panes (top
+    and bottom tab placement) and RSyntaxTextArea (with enabled line-wrapping)
+    as tab content. (see
+    [jadx issue #2030](https://github.com/skylot/jadx/issues/2030))
+- Fixed broken rendering after resizing window to minimum size and then
+  increasing size again. (issue #767)
+
+#### Incompatibilities
+
+- Removed support for JetBrains custom decorations, which required
+  [JetBrains Runtime](https://github.com/JetBrains/JetBrainsRuntime/wiki) (JBR)
+  8 or 11. It did not work for JBR 17. System property
+  `flatlaf.useJetBrainsCustomDecorations` is now ignored. **Note**: FlatLaf
+  window decorations continue to work with JBR.
+
+
+## 3.2.5
+
+#### Fixed bugs
+
+- Popup: Fixed NPE if popup invoker is `null` on Windows 10. (issue #753;
+  regression in 3.2.1 in fix for #626)
+
+
+## 3.2.4
+
+#### Fixed bugs
+
+- Popup: Fixed NPE if popup invoker is `null` on Linux with Wayland and Java 21.
+  (issue #752; regression in 3.2.3)
+
+
+## 3.2.3
+
+#### Fixed bugs
+
+- Popup: Popups that request focus were not shown on Linux with Wayland and Java 21.
+  (issue #752)
+
+
+## 3.2.2
+
+#### Fixed bugs
+
+- Button: Fixed painting icon and text at wrong location when using HTML text,
+  left/right vertical alignment and running in Java 19+. (issue #746)
+- CheckBox and RadioButton: Fixed cut off right side when border is removed and
+  horizontal alignment is set to `right`. (issue #734)
+- TabbedPane: Fixed NPE when using focusable component as tab component and
+  switching theme. (issue #745)
+
+
+## 3.2.1
+
+#### Fixed bugs
+
+- Fixed memory leak in
+  `MultiResolutionImageSupport.create(int,Dimension[],Function<Dimension,Image>)`,
+  which caches images created by the producer function. Used by
+  `FlatSVGIcon.getImage()` and `FlatSVGUtils.createWindowIconImages()`. If you
+  use one of these methods, it is **strongly recommended** to upgrade to this
+  version, because if the returned image is larger and painted very often it may
+  result in an out-of-memory situation. (issue #726)
+- FileChooser: Fixed occasional NPE in `FlatShortcutsPanel` on Windows. (issue
+  #718)
+- TextField: Fixed placeholder text painting, which did not respect horizontal
+  alignment property of `JTextField`. (issue #721)
+- Popup: Fixed drop shadow if popup overlaps a heavyweight component. (Windows
+  10 only; issue #626)
+
+
+## 3.2
+
+#### New features and improvements
+
+- TabbedPane: Support rounded underline selection and rounded card tabs. (PR
+  #703)
+- FlatLaf window decorations:
+  - Support for Windows on ARM 64-bit. (issue #443, PR #707)
+  - Support toolbox-style "small" window title bar. (issue #659, PR #702)
+- Extras: Class `FlatSVGIcon` now uses [JSVG](https://github.com/weisJ/jsvg)
+  library (instead of svgSalamander) for rendering. JSVG provides improved SVG
+  rendering and uses less memory compared to svgSalamander. (PR #684)
+- ComboBox: Improved location of selected item in popup if list is large and
+  scrollable.
+- FileChooser: Show localized text for all locales supported by Java's Metal
+  look and feel. (issue #680)
+- Added system property `flatlaf.useNativeLibrary` to allow disabling loading of
+  FlatLaf native library. (issue #674)
+- IntelliJ Themes:
+  - Reduced memory footprint by releasing Json data and ignoring IntelliJ UI
+    properties that are not used in FlatLaf.
+  - Updated "Hiberbee Dark" and "Gradianto" themes.
+
+#### Fixed bugs
+
+- Styling: Fixed scaling of some styling properties (`rowHeight` for Table and
+  Tree; `iconTextGap` for Button, CheckBox and RadioButton). (issue #682)
+- Fixed `IllegalComponentStateException` when invoker is not showing in
+  `SubMenuUsabilityHelper`. (issue #692)
+- macOS themes: Changing `@accentColor` variable in FlatLaf properties files did
+  not change all accent related colors for all components.
+- IntelliJ Themes:
+  - "Light Owl" theme: Fixed wrong (unreadable) text color in selected menu
+    items, selected text in text components, and selection in ComboBox popup
+    list. (issue #687)
+  - "Gradianto Midnight Blue" theme: Fixed color of ScrollBar track, which was
+    not visible. (issue #686)
+  - "Monocai" theme: Fixed unreadable text color of default buttons. (issue
+    #693)
+  - "Vuesion" theme: Fixed foreground colors of disabled text.
+  - "Material UI Lite" themes: Fixed non-editable ComboBox button background.
+  - CheckBox and RadioButton: Fixed unselected icon colors for themes "Atom One
+    Light", "Cyan Light", "GitHub", "Light Owl", "Material Lighter" and
+    "Solarized Light".
+  - TabbedPane: Fixed focused tab background color for themes "Arc *", "Material
+    Design Dark", "Monocai", "One Dark", "Spacegray" and "Xcode-Dark". (issue
+    #697)
+  - TextComponents, ComboBox and Spinner: Fixed background colors of enabled
+    text components, to distinguish from disabled, for themes "Carbon", "Cobalt
+    2", "Gradianto *", "Gruvbox *", "Monocai", "Spacegray", "Vuesion",
+    "Xcode-Dark", "GitHub", and "Light Owl". (issue #528)
+  - Fixed wrong disabled text colors in "Dark Flat", "Hiberbee Dark", "Light
+    Flat", "Nord", "Solarized Dark" and "Solarized Light" themes.
+  - Fixed colors for selection background/foreground, Separator, Slider track
+    and ProgressBar background in various themes.
+- Native Windows libraries: Fixed crash when running in Java 8 and newer Java
+  version is installed in `PATH` environment variable and using class
+  `SystemInfo` before AWT initialization. (issue #673)
+- ComboBox: Fixed search in item list for text with spaces. (issue #691)
+- FormattedTextField: On Linux, fixed `IllegalArgumentException: Invalid
+  location` if `JFormattedTextField.setDocument()` is invoked in a focus gained
+  listener on that formatted text field. (issue #698)
+- PopupMenu: Make sure that popup menu does not overlap any operating system
+  task bar. (issue #701)
+- FileChooser: Use system icons on Windows with Java 17.0.3 (and later) 32-bit.
+  Only Java 17 - 17.0.2 32-bit do not use system icons because of a bug in Java
+  32-bit that crashes the application. (PR #709)
+- FileChooser: Fixed crash on Windows with Java 17 to 17.0.2 32-bit. Java 17
+  64-bit is not affected. (regression since FlatLaf 2.3; PR #522, see also issue
+  #403)
+
+#### Incompatibilities
+
+- Extras: Class `FlatSVGIcon` now uses [JSVG](https://github.com/weisJ/jsvg)
+  library for SVG rendering. You need to replace svgSalamander with JSVG in your
+  build scripts and distribute `jsvg.jar` with your application. Also replace
+  `com.kitfox.svg` with `com.github.weisj.jsvg` in `module-info.java` files.
+- IntelliJ Themes: Removed all "Contrast" themes from "Material UI Lite".
+
+
+## 3.1.1
+
+- IntelliJ Themes:
+  - Fixed too large menu item paddings and too large table/tree row heights (all
+    "Material Theme UI Lite" themes; issue #667; regression in FlatLaf 3.1).
+  - Fixed too large tree row height in "Carbon", "Dark Purple", "Gray",
+    "Material Design Dark", "Monokai Pro", "One Dark" and "Spacegray" themes.
+- Native libraries: Fixed `IllegalArgumentException: URI scheme is not "file"`
+  when using FlatLaf in WebStart. (issue #668; regression in FlatLaf 3.1)
+
+
+## 3.1
+
+#### New features and improvements
+
+- Windows 11: Popups (`JPopupMenu`, `JComboBox`, `JToolTip`, etc.) now use
+  native Windows 11 rounded borders and drop shadows. (PR #643)
+- Fonts:
+  - Added **Roboto Mono** (https://fonts.google.com/specimen/Roboto+Mono). (PR
+    #639, issue #638)
+  - Updated **JetBrains Mono** to
+    [v2.304](https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304).
+- Theme Editor: Support macOS light and dark themes.
+- TabbedPane: Support hover and focused tab foreground colors. (issue #627)
+- TabbedPane: `tabbedPane.getBackgroundAt(tabIndex)` now has higher priority
+  than `TabbedPane.focusColor` and `TabbedPane.selectedBackground`. If
+  `tabbedPane.setBackgroundAt(tabIndex)` is used to set a color for a single
+  tab, then this color is now used even if the tab is focused or selected.
+- TableHeader: Support column hover and pressed background and foreground
+  colors. (issue #636)
+- Native libraries: Made it easier to distribute FlatLaf native libraries
+  (Windows `.dll` and Linux `.so`) to avoid problems on operating systems with
+  enabled execution restrictions.
+  See https://www.formdev.com/flatlaf/native-libraries/ for more details. (issue #624)
+  - Published native libraries to Maven Central for easy using them as
+    dependencies in Gradle and Maven.
+  - If available, native libraries are now loaded from same location as
+    `flatlaf.jar`, otherwise they are extract from `flatlaf.jar` to temporary
+    folder and loaded from there.
+  - Windows DLLs are now digitally signed with FormDev Software GmbH
+    certificate.
 
 #### Fixed bugs
 
@@ -10,11 +494,27 @@ FlatLaf Change Log
     decorations are used (e.g. Windows 10/11) or not (e.g. macOS). Now the glass
     pane no longer overlaps the FlatLaf window title bar. (issue #630)
   - Linux: Fixed broken window resizing on multi-screen setups. (issue #632)
+  - Linux: Fixed behavior of maximize/restore button when tiling window to left
+    or right half of screen. (issue #647)
 - IntelliJ Themes:
   - Fixed default button hover background in "Solarized Light" theme. (issue
     #628)
   - Avoid that accent color affect some colors in some IntelliJ themes. (issue
     #625)
+  - Updated "Hiberbee Dark" and "Material Theme UI Lite" themes.
+- Styling: Fixed resolving of UI variables in styles that use other variables.
+- MenuItem: Fixed horizontal alignment of icons. (issue #631)
+- Table: Fixed potential performance issue with paint cell focus indicator
+  border. (issue #654)
+- Tree: Fixed missing custom closed/opened/leaf icons of a custom
+  `DefaultTreeCellRenderer`. (issue #653; regression since implementing PR #609
+  in FlatLaf 3.0)
+- Tree: Fixed truncated node text and too small painted non-wide node background
+  if custom cell renderer sets icon, but not disabled icon, and tree is
+  disabled. (issue #640)
+- Fixed `HiDPIUtils.paintAtScale1x()`, which painted at wrong location if
+  graphics is rotated, is scaled and `x` or `y` parameters are not zero. (issue
+  #646)
 
 
 ## 3.0
@@ -522,7 +1022,7 @@ FlatLaf Change Log
 - Native window decorations (Windows 10 only):
   - Fixed occasional application crash in `flatlaf-windows.dll`. (issue #357)
   - When window is initially shown, fill background with window background color
-    (instead of white), which avoids flickering in dark themes. (issue 339)
+    (instead of white), which avoids flickering in dark themes. (issue #339)
   - When resizing a window at the right/bottom edge, then first fill the new
     space with the window background color (instead of black) before the layout
     is updated.

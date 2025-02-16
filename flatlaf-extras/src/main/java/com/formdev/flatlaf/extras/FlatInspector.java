@@ -24,6 +24,7 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.GraphicsConfiguration;
 import java.awt.Insets;
 import java.awt.KeyboardFocusManager;
 import java.awt.LayoutManager;
@@ -124,9 +125,12 @@ public class FlatInspector
 	 * Installs a key listener into the application that allows enabling and disabling
 	 * the UI inspector with the given keystroke (e.g. "ctrl shift alt X").
 	 *
-	 * @param activationKeys a keystroke (e.g. "ctrl shift alt X")
+	 * @param activationKeys a keystroke (e.g. "ctrl shift alt X"), or {@code null} to use "ctrl shift alt X"
 	 */
 	public static void install( String activationKeys ) {
+		if( activationKeys == null )
+			activationKeys = "ctrl shift alt X";
+
 		KeyStroke keyStroke = KeyStroke.getKeyStroke( activationKeys );
 		Toolkit.getDefaultToolkit().addAWTEventListener( e -> {
 			if( e.getID() == KeyEvent.KEY_RELEASED &&
@@ -450,15 +454,18 @@ public class FlatInspector
 		Dimension size = tip.getPreferredSize();
 
 		// position the tip in the visible area
-		Rectangle visibleRect = rootPane.getGraphicsConfiguration().getBounds();
-		if( tx + size.width > visibleRect.x + visibleRect.width )
-			tx -= size.width + UIScale.scale( 16 );
-		if( ty + size.height > visibleRect.y + visibleRect.height )
-			ty -= size.height + UIScale.scale( 32 );
-		if( tx < visibleRect.x )
-			tx = visibleRect.x;
-		if( ty < visibleRect.y )
-			ty = visibleRect.y;
+		GraphicsConfiguration gc = rootPane.getGraphicsConfiguration();
+		if( gc != null ) {
+			Rectangle visibleRect = gc.getBounds();
+			if( tx + size.width > visibleRect.x + visibleRect.width )
+				tx -= size.width + UIScale.scale( 16 );
+			if( ty + size.height > visibleRect.y + visibleRect.height )
+				ty -= size.height + UIScale.scale( 32 );
+			if( tx < visibleRect.x )
+				tx = visibleRect.x;
+			if( ty < visibleRect.y )
+				ty = visibleRect.y;
+		}
 
 		PopupFactory popupFactory = PopupFactory.getSharedInstance();
 		popup = popupFactory.getPopup( c, tip, tx, ty );
@@ -546,6 +553,12 @@ public class FlatInspector
 		appendRow( buf, "Focusable", String.valueOf( c.isFocusable() ) );
 		appendRow( buf, "Left-to-right", String.valueOf( c.getComponentOrientation().isLeftToRight() ) );
 		appendRow( buf, "Parent", (c.getParent() != null ? toString( c.getParent().getClass(), classHierarchy ) : "null") );
+
+		if( c instanceof JComponent ) {
+			Object style = ((JComponent)c).getClientProperty( FlatClientProperties.STYLE );
+			if( style != null )
+				appendRow( buf, "FlatLaf Style", style.toString() );
+		}
 
 		// append parent level
 		buf.append( "<tr><td colspan=\"2\">" );

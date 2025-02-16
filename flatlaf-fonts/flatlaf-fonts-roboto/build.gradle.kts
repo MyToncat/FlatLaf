@@ -33,9 +33,8 @@ plugins {
 dependencies {
 	implementation( project( ":flatlaf-core" ) )
 
-	testImplementation( "org.junit.jupiter:junit-jupiter-api:5.7.2" )
-	testImplementation( "org.junit.jupiter:junit-jupiter-params" )
-	testRuntimeOnly( "org.junit.jupiter:junit-jupiter-engine" )
+	testImplementation( libs.junit )
+	testRuntimeOnly( libs.junit.launcher )
 }
 
 flatlafModuleInfo {
@@ -57,7 +56,7 @@ tasks {
 		testLogging.exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
 	}
 
-	withType<PublishToMavenRepository>().configureEach {
+	withType<AbstractPublishToMaven>().configureEach {
 		onlyIf { !rootProject.hasProperty( "skipFonts" ) }
 	}
 }

@@ -39,12 +39,15 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JToolBar;
 import javax.swing.LayoutFocusTraversalPolicy;
+import javax.swing.RootPaneContainer;
 import javax.swing.UIManager;
 import javax.swing.border.Border;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicToolBarUI;
+import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatStylingSupport.Styleable;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
+import com.formdev.flatlaf.util.HiDPIUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
 import com.formdev.flatlaf.util.UIScale;
 
@@ -80,7 +83,7 @@ import com.formdev.flatlaf.util.UIScale;
  */
 public class FlatToolBarUI
 	extends BasicToolBarUI
-	implements StyleableUI
+	implements StyleableUI, FlatTitlePane.TitleBarCaptionHitTest
 {
 	/** @since 1.4 */ @Styleable protected boolean focusableButtons;
 	/** @since 2 */ @Styleable protected boolean arrowKeysOnlyNavigation;
@@ -90,6 +93,10 @@ public class FlatToolBarUI
 	// for FlatToolBarBorder
 	@Styleable protected Insets borderMargins;
 	@Styleable protected Color gripColor;
+
+	// for FlatToolBarSeparatorUI
+	/** @since 3.3 */ @Styleable protected Integer separatorWidth;
+	/** @since 3.3 */ @Styleable protected Color separatorColor;
 
 	private FocusTraversalPolicy focusTraversalPolicy;
 	private Boolean oldFloatable;
@@ -154,6 +161,13 @@ public class FlatToolBarUI
 			toolBar.setFloatable( oldFloatable );
 			oldFloatable = null;
 		}
+	}
+
+	@Override
+	protected RootPaneContainer createFloatingWindow( JToolBar toolbar ) {
+		RootPaneContainer floatingWindow = super.createFloatingWindow( toolbar );
+		floatingWindow.getRootPane().putClientProperty( FlatClientProperties.WINDOW_STYLE, FlatClientProperties.WINDOW_STYLE_SMALL );
+		return floatingWindow;
 	}
 
 	@Override
@@ -430,7 +444,7 @@ public class FlatToolBarUI
 
 		// repaint button group
 		if( gr != null )
-			toolBar.repaint( gr );
+			HiDPIUtils.repaint(toolBar, gr );
 	}
 
 	private ButtonGroup getButtonGroup( AbstractButton b ) {
@@ -438,6 +452,15 @@ public class FlatToolBarUI
 		return (model instanceof DefaultButtonModel)
 			? ((DefaultButtonModel)model).getGroup()
 			: null;
+	}
+
+	//---- interface FlatTitlePane.TitleBarCaptionHitTest ----
+
+	/** @since 3.4 */
+	@Override
+	public Boolean isTitleBarCaptionAt( int x, int y ) {
+		// necessary because BasicToolBarUI adds some mouse listeners for dragging when toolbar is floatable
+		return null; // check children
 	}
 
 	//---- class FlatToolBarFocusTraversalPolicy ------------------------------
@@ -508,8 +531,11 @@ public class FlatToolBarUI
 
 		private Component getRecentComponent( Container aContainer, boolean first ) {
 			// if moving focus into the toolbar, focus recently focused toolbar button
-			if( focusedCompIndex >= 0 && focusedCompIndex < toolBar.getComponentCount() )
-				return toolBar.getComponent( focusedCompIndex );
+			if( focusedCompIndex >= 0 && focusedCompIndex < toolBar.getComponentCount() ) {
+				Component c = toolBar.getComponent( focusedCompIndex );
+				if( accept( c ) )
+					return c;
+			}
 
 			return first
 				? super.getFirstComponent( aContainer )

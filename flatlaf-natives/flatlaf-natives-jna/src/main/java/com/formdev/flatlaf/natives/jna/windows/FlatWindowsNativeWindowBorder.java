@@ -32,8 +32,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.Collections;
 import java.util.IdentityHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.Timer;
@@ -60,8 +60,11 @@ import com.sun.jna.platform.win32.WinDef.LRESULT;
 import com.sun.jna.platform.win32.WinDef.RECT;
 import com.sun.jna.platform.win32.WinDef.UINT_PTR;
 import com.sun.jna.platform.win32.WinDef.WPARAM;
+import com.sun.jna.platform.win32.WinError;
 import com.sun.jna.platform.win32.WinUser.HMONITOR;
 import com.sun.jna.platform.win32.WinUser.WindowProc;
+import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.win32.StdCallLibrary;
 import com.sun.jna.win32.W32APIOptions;
 
 //
@@ -122,7 +125,7 @@ public class FlatWindowsNativeWindowBorder
 	}
 
 	/**
-	 * Tell the window whether the application wants use custom decorations.
+	 * Tell the window whether the application wants to use custom decorations.
 	 * If {@code true}, the Windows 10 title bar is hidden (including minimize,
 	 * maximize and close buttons), but not the resize borders (including drop shadow).
 	 */
@@ -164,7 +167,7 @@ public class FlatWindowsNativeWindowBorder
 	}
 
 	@Override
-	public void updateTitleBarInfo( Window window, int titleBarHeight, List<Rectangle> hitTestSpots,
+	public void updateTitleBarInfo( Window window, int titleBarHeight, Predicate<Point> captionHitTestCallback,
 		Rectangle appIconBounds, Rectangle minimizeButtonBounds, Rectangle maximizeButtonBounds,
 		Rectangle closeButtonBounds )
 	{
@@ -173,7 +176,7 @@ public class FlatWindowsNativeWindowBorder
 			return;
 
 		wndProc.titleBarHeight = titleBarHeight;
-		wndProc.hitTestSpots = hitTestSpots.toArray( new Rectangle[hitTestSpots.size()] );
+		wndProc.captionHitTestCallback = captionHitTestCallback;
 		wndProc.appIconBounds = cloneRectange( appIconBounds );
 		wndProc.minimizeButtonBounds = cloneRectange( minimizeButtonBounds );
 		wndProc.maximizeButtonBounds = cloneRectange( maximizeButtonBounds );
@@ -306,6 +309,8 @@ public class FlatWindowsNativeWindowBorder
 			WM_ENTERSIZEMOVE = 0x0231,
 			WM_EXITSIZEMOVE = 0x0232,
 
+			WM_DPICHANGED = 0x02E0,
+
 			WM_DWMCOLORIZATIONCOLORCHANGED = 0x0320;
 
 		// WM_SIZE wParam
@@ -351,7 +356,7 @@ public class FlatWindowsNativeWindowBorder
 
 		// Swing coordinates/values may be scaled on a HiDPI screen
 		private int titleBarHeight;
-		private Rectangle[] hitTestSpots;
+		private Predicate<Point> captionHitTestCallback;
 		private Rectangle appIconBounds;
 		private Rectangle minimizeButtonBounds;
 		private Rectangle maximizeButtonBounds;
@@ -498,6 +503,22 @@ public class FlatWindowsNativeWindowBorder
 						isMoving = true;
 					break;
 
+				case WM_DPICHANGED:
+					LRESULT lResult = User32Ex.INSTANCE.CallWindowProc( defaultWndProc, hwnd, uMsg, wParam, lParam );
+
+					// if window is maximized and DPI/scaling changed, then Windows
+					// does not send a subsequent WM_SIZE message and Java window bounds,
+					// which depend on scale factor, are not updated
+					boolean isMaximized = User32Ex.INSTANCE.IsZoomed( hwnd );
+					if( isMaximized ) {
+						MyRECT r = new MyRECT( new Pointer( lParam.longValue() ) );
+						int width = r.right - r.left;
+						int height = r.bottom - r.top;
+						User32Ex.INSTANCE.CallWindowProc( defaultWndProc, hwnd, WM_SIZE, new WPARAM( SIZE_MAXIMIZED ), MAKELPARAM( width, height ) );
+					}
+
+					return lResult;
+
 				case WM_ERASEBKGND:
 					// do not erase background while the user is moving the window,
 					// otherwise there may be rendering artifacts on HiDPI screens with Java 9+
@@ -615,6 +636,14 @@ public class FlatWindowsNativeWindowBorder
 					if( hasAutohideTaskbar( ABE_RIGHT, monitorInfo.rcMonitor ) )
 						params.rgrc[0].right--;
 				}
+			} else if( SystemInfo.isWindows_11_orLater ) {
+				// For Windows 11, add border thickness to top, which is necessary to make the whole Java area visible.
+				// This also avoids that a black line is sometimes painted on top window border.
+				// Note: Do not increase top on Windows 10 because this would not hide Windows title bar.
+				IntByReference borderThickness = new IntByReference();
+				if( DWMApi.INSTANCE.DwmGetWindowAttribute( hwnd, DWMApi.DWMWA_VISIBLE_FRAME_BORDER_THICKNESS,
+						borderThickness.getPointer(), 4 ) == WinError.S_OK.intValue() )
+					params.rgrc[0].top += borderThickness.getValue();
 			}
 
 			// write changed params back to native memory
@@ -644,53 +673,65 @@ public class FlatWindowsNativeWindowBorder
 
 			// scale-down mouse x/y because Swing coordinates/values may be scaled on a HiDPI screen
 			Point pt = scaleDown( x, y );
-			int sx = pt.x;
-			int sy = pt.y;
 
 			// return HTSYSMENU if mouse is over application icon
 			//   - left-click on HTSYSMENU area shows system menu
 			//   - double-left-click sends WM_CLOSE
-			if( contains( appIconBounds, sx, sy ) )
+			if( contains( appIconBounds, pt ) )
 				return new LRESULT( HTSYSMENU );
 
 			// return HTMINBUTTON if mouse is over minimize button
 			//   - hovering mouse over HTMINBUTTON area shows tooltip on Windows 10/11
-			if( contains( minimizeButtonBounds, sx, sy ) )
+			if( contains( minimizeButtonBounds, pt ) )
 				return new LRESULT( HTMINBUTTON );
 
 			// return HTMAXBUTTON if mouse is over maximize/restore button
 			//   - hovering mouse over HTMAXBUTTON area shows tooltip on Windows 10
 			//   - hovering mouse over HTMAXBUTTON area shows snap layouts menu on Windows 11
 			//     https://docs.microsoft.com/en-us/windows/apps/desktop/modernize/apply-snap-layout-menu
-			if( contains( maximizeButtonBounds, sx, sy ) )
+			if( contains( maximizeButtonBounds, pt ) )
 				return new LRESULT( HTMAXBUTTON );
 
 			// return HTCLOSE if mouse is over close button
 			//   - hovering mouse over HTCLOSE area shows tooltip on Windows 10/11
-			if( contains( closeButtonBounds, sx, sy ) )
+			if( contains( closeButtonBounds, pt ) )
 				return new LRESULT( HTCLOSE );
 
 			int resizeBorderHeight = getResizeHandleHeight();
 			boolean isOnResizeBorder = (y < resizeBorderHeight) &&
 				(User32.INSTANCE.GetWindowLong( hwnd, GWL_STYLE ) & WS_THICKFRAME) != 0;
-			boolean isOnTitleBar = (sy < titleBarHeight);
 
+			// return HTTOP if mouse is over top resize border
+			//   - hovering mouse shows vertical resize cursor
+			//   - left-click and drag vertically resizes window
+			if( isOnResizeBorder )
+				return new LRESULT( HTTOP );
+
+			boolean isOnTitleBar = (pt.y < titleBarHeight);
 			if( isOnTitleBar ) {
-				// use a second reference to the array to avoid that it can be changed
-				// in another thread while processing the array
-				Rectangle[] hitTestSpots2 = hitTestSpots;
-				for( Rectangle spot : hitTestSpots2 ) {
-					if( spot.contains( sx, sy ) )
+				// return HTCLIENT if mouse is over any Swing component in title bar
+				// that processes mouse events (e.g. buttons, menus, etc)
+				//   - Windows ignores mouse events in this area
+				try {
+					if( captionHitTestCallback != null && !captionHitTestCallback.test( pt ) )
 						return new LRESULT( HTCLIENT );
+				} catch( Throwable ex ) {
+					// ignore
 				}
-				return new LRESULT( isOnResizeBorder ? HTTOP : HTCAPTION );
+
+				// return HTCAPTION if mouse is over title bar
+				//   - right-click shows system menu
+				//   - double-left-click maximizes/restores window size
+				return new LRESULT( HTCAPTION );
 			}
 
-			return new LRESULT( isOnResizeBorder ? HTTOP : HTCLIENT );
+			// return HTCLIENT
+			//   - Windows ignores mouse events in this area
+			return new LRESULT( HTCLIENT );
 		}
 
-		private boolean contains( Rectangle rect, int x, int y ) {
-			return (rect != null && rect.contains( x, y ) );
+		private boolean contains( Rectangle rect, Point pt ) {
+			return (rect != null && rect.contains( pt ) );
 		}
 
 		/**
@@ -796,6 +837,13 @@ public class FlatWindowsNativeWindowBorder
 		}
 
 		/**
+		 * Same implementation as MAKELPARAM(l, h) macro in winuser.h.
+		 */
+		private LPARAM MAKELPARAM( int low, int high ) {
+			return new LPARAM( MAKELONG( low, high ) );
+		}
+
+		/**
 		 * Same implementation as RGB(r,g,b) macro in wingdi.h.
 		 */
 		private DWORD RGB( int r, int g, int b ) {
@@ -869,7 +917,6 @@ public class FlatWindowsNativeWindowBorder
 		int GetSystemMetricsForDpi( int nIndex, int dpi );
 
 		boolean IsZoomed( HWND hWnd );
-		HANDLE GetProp( HWND hWnd, String lpString );
 
 		HMENU GetSystemMenu( HWND hWnd, boolean bRevert );
 		boolean SetMenuItemInfo( HMENU hmenu, int item, boolean fByPositon, MENUITEMINFO lpmii );
@@ -887,6 +934,18 @@ public class FlatWindowsNativeWindowBorder
 		HBRUSH CreateSolidBrush( DWORD color );
 	}
 
+	//---- interface DWMApi ---------------------------------------------------
+
+	private interface DWMApi
+		extends StdCallLibrary
+	{
+		DWMApi INSTANCE = Native.load( "dwmapi", DWMApi.class, W32APIOptions.DEFAULT_OPTIONS );
+
+		int DWMWA_VISIBLE_FRAME_BORDER_THICKNESS = 37;
+
+		int DwmGetWindowAttribute( HWND hwnd, int dwAttribute, Pointer pvAttribute, int cbAttribute );
+	}
+
 	//---- class NCCALCSIZE_PARAMS --------------------------------------------
 
 	@FieldOrder( { "rgrc" } )
@@ -898,6 +957,23 @@ public class FlatWindowsNativeWindowBorder
 //		public WINDOWPOS lppos;
 
 		public NCCALCSIZE_PARAMS( Pointer pointer ) {
+			super( pointer );
+			read();
+		}
+	}
+
+	//---- class MyRECT -------------------------------------------------------
+
+	@FieldOrder( { "left", "top", "right", "bottom" } )
+	public static class MyRECT
+		extends Structure
+	{
+		public int left;
+		public int top;
+		public int right;
+		public int bottom;
+
+		public MyRECT( Pointer pointer ) {
 			super( pointer );
 			read();
 		}

@@ -22,13 +22,19 @@ plugins {
 
 flatlafJniHeaders {
 	headers = listOf(
+		"com_formdev_flatlaf_ui_FlatNativeLibrary.h",
+		"com_formdev_flatlaf_ui_FlatNativeWindowsLibrary.h",
 		"com_formdev_flatlaf_ui_FlatWindowsNativeWindowBorder.h",
 		"com_formdev_flatlaf_ui_FlatWindowsNativeWindowBorder_WndProc.h"
 	)
 }
 
 library {
-	targetMachines.set( listOf( machines.windows.x86, machines.windows.x86_64 ) )
+	targetMachines = listOf(
+		machines.windows.x86,
+		machines.windows.x86_64,
+		machines.windows.architecture( "aarch64" )
+	)
 }
 
 var javaHome = System.getProperty( "java.home" )
@@ -41,7 +47,7 @@ tasks {
 		description = "Builds natives"
 
 		if( org.gradle.internal.os.OperatingSystem.current().isWindows() )
-			dependsOn( "linkReleaseX86", "linkReleaseX86-64" )
+			dependsOn( "linkReleaseX86", "linkReleaseX86-64", "linkReleaseAarch64" )
 	}
 
 	withType<CppCompile>().configureEach {
@@ -68,14 +74,14 @@ tasks {
 		onlyIf { name.contains( "Release" ) }
 
 		val nativesDir = project( ":flatlaf-core" ).projectDir.resolve( "src/main/resources/com/formdev/flatlaf/natives" )
+		val isX86 = name.contains("X86")
 		val is64Bit = name.contains( "64" )
-		val libraryName = if( is64Bit ) "flatlaf-windows-x86_64.dll" else "flatlaf-windows-x86.dll"
-		val jawt = if( is64Bit ) "lib/jawt-x86_64" else "lib/jawt-x86"
+		val libraryName = if( is64Bit && isX86 ) "flatlaf-windows-x86_64.dll" else if( isX86 ) "flatlaf-windows-x86.dll" else "flatlaf-windows-arm64.dll"
 
 		linkerArgs.addAll( toolChain.map {
 			when( it ) {
-				is Gcc, is Clang -> listOf( "-l${jawt}", "-lUser32", "-lGdi32", "-lshell32", "-lAdvAPI32", "-lKernel32" )
-				is VisualCpp -> listOf( "${jawt}.lib", "User32.lib", "Gdi32.lib", "shell32.lib", "AdvAPI32.lib", "Kernel32.lib", "/NODEFAULTLIB" )
+				is Gcc, is Clang -> listOf( "-lUser32", "-lGdi32", "-lshell32", "-lAdvAPI32", "-lKernel32", "-lDwmapi" )
+				is VisualCpp -> listOf( "User32.lib", "Gdi32.lib", "shell32.lib", "AdvAPI32.lib", "Kernel32.lib", "Dwmapi.lib", "/NODEFAULTLIB" )
 				else -> emptyList()
 			}
 		} )
@@ -85,7 +91,7 @@ tasks {
 			copy {
 				from( linkedFile )
 				into( nativesDir )
-				rename( "flatlaf-natives-windows.dll", libraryName )
+				rename( linkedFile.get().asFile.name, libraryName )
 			}
 		}
 	}

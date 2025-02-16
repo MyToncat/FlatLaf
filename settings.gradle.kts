@@ -28,8 +28,10 @@ include( "flatlaf-theme-editor" )
 includeProject( "flatlaf-fonts-inter",          "flatlaf-fonts/flatlaf-fonts-inter" )
 includeProject( "flatlaf-fonts-jetbrains-mono", "flatlaf-fonts/flatlaf-fonts-jetbrains-mono" )
 includeProject( "flatlaf-fonts-roboto",         "flatlaf-fonts/flatlaf-fonts-roboto" )
+includeProject( "flatlaf-fonts-roboto-mono",    "flatlaf-fonts/flatlaf-fonts-roboto-mono" )
 
 includeProject( "flatlaf-natives-windows", "flatlaf-natives/flatlaf-natives-windows" )
+includeProject( "flatlaf-natives-macos",   "flatlaf-natives/flatlaf-natives-macos" )
 includeProject( "flatlaf-natives-linux",   "flatlaf-natives/flatlaf-natives-linux" )
 includeProject( "flatlaf-natives-jna",     "flatlaf-natives/flatlaf-natives-jna" )
 
@@ -38,4 +40,10 @@ includeProject( "flatlaf-testing-modular-app", "flatlaf-testing/flatlaf-testing-
 fun includeProject( projectPath: String, projectDir: String ) {
 	include( projectPath )
 	project( ":$projectPath" ).projectDir = file( projectDir )
+}
+
+
+// for using newer Java version via toolchain
+plugins {
+	id( "org.gradle.toolchains.foojay-resolver-convention" ) version( "0.5.0" )
 }

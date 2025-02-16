@@ -27,19 +27,22 @@ dependencies {
 	implementation( project( ":flatlaf-fonts-inter" ) )
 	implementation( project( ":flatlaf-fonts-jetbrains-mono" ) )
 	implementation( project( ":flatlaf-fonts-roboto" ) )
+	implementation( project( ":flatlaf-fonts-roboto-mono" ) )
 	implementation( project( ":flatlaf-swingx" ) )
 	implementation( project( ":flatlaf-jide-oss" ) )
 	implementation( project( ":flatlaf-intellij-themes" ) )
 	implementation( project( ":flatlaf-demo" ) )
 //	implementation( project( ":flatlaf-natives-jna" ) )
 
-	implementation( "com.miglayout:miglayout-swing:5.3" )
-	implementation( "com.jgoodies:jgoodies-forms:1.9.0" )
-	implementation( "org.swinglabs.swingx:swingx-all:1.6.5-1" )
-	implementation( "org.swinglabs.swingx:swingx-beaninfo:1.6.5-1" )
-	implementation( "com.formdev:jide-oss:3.7.12" )
-	implementation( "com.glazedlists:glazedlists:1.11.0" )
-	implementation( "org.netbeans.api:org-openide-awt:RELEASE112" )
+	implementation( libs.miglayout.swing )
+	implementation( libs.jgoodies.forms )
+	implementation( libs.swingx.all )
+	implementation( libs.swingx.beaninfo )
+	implementation( libs.jide.oss )
+	implementation( libs.glazedlists )
+	implementation( libs.netbeans.api.awt )
+
+	components.all<TargetJvmVersion8Rule>()
 }
 
 applyLafs()
@@ -55,5 +58,15 @@ fun applyLafs() {
 		val parts = value.split( ';' )
 		if( parts.size >= 3 )
 			dependencies.implementation( parts[2] )
+	}
+}
+
+// rule that overrides 'org.gradle.jvm.version' with '8'
+// (required for Radiance, which requires Java 9, but FlatLaf build uses Java 8)
+abstract class TargetJvmVersion8Rule : ComponentMetadataRule {
+	override fun execute( context: ComponentMetadataContext ) {
+		context.details.allVariants {
+			attributes.attribute( TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8 )
+		}
 	}
 }

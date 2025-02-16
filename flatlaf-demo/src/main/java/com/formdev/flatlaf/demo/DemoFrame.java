@@ -46,7 +46,6 @@ import com.formdev.flatlaf.icons.FlatAbstractIcon;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import com.formdev.flatlaf.extras.FlatSVGUtils;
-import com.formdev.flatlaf.ui.JBRCustomDecorations;
 import com.formdev.flatlaf.util.ColorFunctions;
 import com.formdev.flatlaf.util.FontUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
@@ -74,6 +73,7 @@ class DemoFrame
 		initComponents();
 		updateFontMenuItems();
 		initAccentColors();
+		initFullWindowContent();
 		controlBar.initialize( this, tabbedPane );
 
 		setIconImages( FlatSVGUtils.createWindowIconImages( "/com/formdev/flatlaf/demo/FlatLaf.svg" ) );
@@ -90,24 +90,23 @@ class DemoFrame
 			// do not use HTML text in menu items because this is not supported in macOS screen menu
 			htmlMenuItem.setText( "some text" );
 
+			JRootPane rootPane = getRootPane();
 			if( SystemInfo.isMacFullWindowContentSupported ) {
 				// expand window content into window title bar and make title bar transparent
-				getRootPane().putClientProperty( "apple.awt.fullWindowContent", true );
-				getRootPane().putClientProperty( "apple.awt.transparentTitleBar", true );
+				rootPane.putClientProperty( "apple.awt.fullWindowContent", true );
+				rootPane.putClientProperty( "apple.awt.transparentTitleBar", true );
+				rootPane.putClientProperty( FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING, FlatClientProperties.MACOS_WINDOW_BUTTONS_SPACING_LARGE );
 
 				// hide window title
 				if( SystemInfo.isJava_17_orLater )
-					getRootPane().putClientProperty( "apple.awt.windowTitleVisible", false );
+					rootPane.putClientProperty( "apple.awt.windowTitleVisible", false );
 				else
 					setTitle( null );
-
-				// add gap to left side of toolbar
-				toolBar.add( Box.createHorizontalStrut( 70 ), 0 );
 			}
 
 			// enable full screen mode for this window (for Java 8 - 10; not necessary for Java 11+)
 			if( !SystemInfo.isJava_11_orLater )
-				getRootPane().putClientProperty( "apple.awt.fullscreenable", true );
+				rootPane.putClientProperty( "apple.awt.fullscreenable", true );
 		}
 
 		// integrate into macOS screen menu
@@ -440,9 +439,9 @@ class DemoFrame
 
 		Class<? extends LookAndFeel> lafClass = UIManager.getLookAndFeel().getClass();
 		try {
-			FlatLaf.setup( lafClass.newInstance() );
+			FlatLaf.setup( lafClass.getDeclaredConstructor().newInstance() );
 			FlatLaf.updateUI();
-		} catch( InstantiationException | IllegalAccessException ex ) {
+		} catch( Exception ex ) {
 			LoggingFacade.INSTANCE.logSevere( null, ex );
 		}
 	}
@@ -462,9 +461,37 @@ class DemoFrame
 			accentColorButtons[i].setVisible( isAccentColorSupported );
 	}
 
+	private void initFullWindowContent() {
+		if( !supportsFlatLafWindowDecorations() )
+			return;
+
+		// create fullWindowContent mode toggle button
+		Icon expandIcon = new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/expand.svg" );
+		Icon collapseIcon = new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/collapse.svg" );
+		JToggleButton fullWindowContentButton = new JToggleButton( expandIcon );
+		fullWindowContentButton.setToolTipText( "Toggle full window content" );
+		fullWindowContentButton.addActionListener( e -> {
+			boolean fullWindowContent = fullWindowContentButton.isSelected();
+			fullWindowContentButton.setIcon( fullWindowContent ? collapseIcon : expandIcon );
+			menuBar.setVisible( !fullWindowContent );
+			toolBar.setVisible( !fullWindowContent );
+			getRootPane().putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT, fullWindowContent );
+		} );
+
+		// add fullWindowContent mode toggle button to tabbed pane
+		JToolBar trailingToolBar = new JToolBar();
+		trailingToolBar.add( Box.createGlue() );
+		trailingToolBar.add( fullWindowContentButton );
+		tabbedPane.putClientProperty( FlatClientProperties.TABBED_PANE_TRAILING_COMPONENT, trailingToolBar );
+	}
+
+	private boolean supportsFlatLafWindowDecorations() {
+		return FlatLaf.supportsNativeWindowDecorations() || (SystemInfo.isLinux && JFrame.isDefaultLookAndFeelDecorated());
+	}
+
 	private void initComponents() {
 		// JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
-		JMenuBar menuBar1 = new JMenuBar();
+		menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu();
 		JMenuItem newMenuItem = new JMenuItem();
 		JMenuItem openMenuItem = new JMenuItem();
@@ -510,6 +537,8 @@ class DemoFrame
 		JMenuItem showUIDefaultsInspectorMenuItem = new JMenuItem();
 		JMenu helpMenu = new JMenu();
 		aboutMenuItem = new JMenuItem();
+		JPanel toolBarPanel = new JPanel();
+		JPanel macFullWindowContentButtonsPlaceholder = new JPanel();
 		toolBar = new JToolBar();
 		JButton backButton = new JButton();
 		JButton forwardButton = new JButton();
@@ -525,8 +554,10 @@ class DemoFrame
 		DataComponentsPanel dataComponentsPanel = new DataComponentsPanel();
 		TabsPanel tabsPanel = new TabsPanel();
 		OptionPanePanel optionPanePanel = new OptionPanePanel();
-		ExtrasPanel extrasPanel1 = new ExtrasPanel();
+		ExtrasPanel extrasPanel = new ExtrasPanel();
 		controlBar = new ControlBar();
+		JPanel themesPanelPanel = new JPanel();
+		JPanel winFullWindowContentButtonsPlaceholder = new JPanel();
 		themesPanel = new IJThemesPanel();
 
 		//======== this ========
@@ -535,7 +566,7 @@ class DemoFrame
 		Container contentPane = getContentPane();
 		contentPane.setLayout(new BorderLayout());
 
-		//======== menuBar1 ========
+		//======== menuBar ========
 		{
 
 			//======== fileMenu ========
@@ -580,7 +611,7 @@ class DemoFrame
 				exitMenuItem.addActionListener(e -> exitActionPerformed());
 				fileMenu.add(exitMenuItem);
 			}
-			menuBar1.add(fileMenu);
+			menuBar.add(fileMenu);
 
 			//======== editMenu ========
 			{
@@ -591,6 +622,7 @@ class DemoFrame
 				undoMenuItem.setText("Undo");
 				undoMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Z, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				undoMenuItem.setMnemonic('U');
+				undoMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/undo.svg"));
 				undoMenuItem.addActionListener(e -> menuItemActionPerformed(e));
 				editMenu.add(undoMenuItem);
 
@@ -598,6 +630,7 @@ class DemoFrame
 				redoMenuItem.setText("Redo");
 				redoMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Y, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				redoMenuItem.setMnemonic('R');
+				redoMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/redo.svg"));
 				redoMenuItem.addActionListener(e -> menuItemActionPerformed(e));
 				editMenu.add(redoMenuItem);
 				editMenu.addSeparator();
@@ -606,18 +639,21 @@ class DemoFrame
 				cutMenuItem.setText("Cut");
 				cutMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_X, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				cutMenuItem.setMnemonic('C');
+				cutMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/menu-cut.svg"));
 				editMenu.add(cutMenuItem);
 
 				//---- copyMenuItem ----
 				copyMenuItem.setText("Copy");
 				copyMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				copyMenuItem.setMnemonic('O');
+				copyMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/copy.svg"));
 				editMenu.add(copyMenuItem);
 
 				//---- pasteMenuItem ----
 				pasteMenuItem.setText("Paste");
 				pasteMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
 				pasteMenuItem.setMnemonic('P');
+				pasteMenuItem.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/menu-paste.svg"));
 				editMenu.add(pasteMenuItem);
 				editMenu.addSeparator();
 
@@ -628,7 +664,7 @@ class DemoFrame
 				deleteMenuItem.addActionListener(e -> menuItemActionPerformed(e));
 				editMenu.add(deleteMenuItem);
 			}
-			menuBar1.add(editMenu);
+			menuBar.add(editMenu);
 
 			//======== viewMenu ========
 			{
@@ -728,7 +764,7 @@ class DemoFrame
 				radioButtonMenuItem3.addActionListener(e -> menuItemActionPerformed(e));
 				viewMenu.add(radioButtonMenuItem3);
 			}
-			menuBar1.add(viewMenu);
+			menuBar.add(viewMenu);
 
 			//======== fontMenu ========
 			{
@@ -752,7 +788,7 @@ class DemoFrame
 				decrFontMenuItem.addActionListener(e -> decrFont());
 				fontMenu.add(decrFontMenuItem);
 			}
-			menuBar1.add(fontMenu);
+			menuBar.add(fontMenu);
 
 			//======== optionsMenu ========
 			{
@@ -804,7 +840,7 @@ class DemoFrame
 				showUIDefaultsInspectorMenuItem.addActionListener(e -> showUIDefaultsInspector());
 				optionsMenu.add(showUIDefaultsInspectorMenuItem);
 			}
-			menuBar1.add(optionsMenu);
+			menuBar.add(optionsMenu);
 
 			//======== helpMenu ========
 			{
@@ -817,47 +853,66 @@ class DemoFrame
 				aboutMenuItem.addActionListener(e -> aboutActionPerformed());
 				helpMenu.add(aboutMenuItem);
 			}
-			menuBar1.add(helpMenu);
+			menuBar.add(helpMenu);
 		}
-		setJMenuBar(menuBar1);
+		setJMenuBar(menuBar);
 
-		//======== toolBar ========
+		//======== toolBarPanel ========
 		{
-			toolBar.setMargin(new Insets(3, 3, 3, 3));
+			toolBarPanel.setLayout(new BorderLayout());
 
-			//---- backButton ----
-			backButton.setToolTipText("Back");
-			toolBar.add(backButton);
+			//======== macFullWindowContentButtonsPlaceholder ========
+			{
+				macFullWindowContentButtonsPlaceholder.setLayout(new FlowLayout());
+			}
+			toolBarPanel.add(macFullWindowContentButtonsPlaceholder, BorderLayout.WEST);
 
-			//---- forwardButton ----
-			forwardButton.setToolTipText("Forward");
-			toolBar.add(forwardButton);
-			toolBar.addSeparator();
+			//======== toolBar ========
+			{
+				toolBar.setMargin(new Insets(3, 3, 3, 3));
 
-			//---- cutButton ----
-			cutButton.setToolTipText("Cut");
-			toolBar.add(cutButton);
+				//---- backButton ----
+				backButton.setToolTipText("Back");
+				backButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/back.svg"));
+				toolBar.add(backButton);
 
-			//---- copyButton ----
-			copyButton.setToolTipText("Copy");
-			toolBar.add(copyButton);
+				//---- forwardButton ----
+				forwardButton.setToolTipText("Forward");
+				forwardButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/forward.svg"));
+				toolBar.add(forwardButton);
+				toolBar.addSeparator();
 
-			//---- pasteButton ----
-			pasteButton.setToolTipText("Paste");
-			toolBar.add(pasteButton);
-			toolBar.addSeparator();
+				//---- cutButton ----
+				cutButton.setToolTipText("Cut");
+				cutButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/menu-cut.svg"));
+				toolBar.add(cutButton);
 
-			//---- refreshButton ----
-			refreshButton.setToolTipText("Refresh");
-			toolBar.add(refreshButton);
-			toolBar.addSeparator();
+				//---- copyButton ----
+				copyButton.setToolTipText("Copy");
+				copyButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/copy.svg"));
+				toolBar.add(copyButton);
 
-			//---- showToggleButton ----
-			showToggleButton.setSelected(true);
-			showToggleButton.setToolTipText("Show Details");
-			toolBar.add(showToggleButton);
+				//---- pasteButton ----
+				pasteButton.setToolTipText("Paste");
+				pasteButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/menu-paste.svg"));
+				toolBar.add(pasteButton);
+				toolBar.addSeparator();
+
+				//---- refreshButton ----
+				refreshButton.setToolTipText("Refresh");
+				refreshButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/refresh.svg"));
+				toolBar.add(refreshButton);
+				toolBar.addSeparator();
+
+				//---- showToggleButton ----
+				showToggleButton.setSelected(true);
+				showToggleButton.setToolTipText("Show Details");
+				showToggleButton.setIcon(new FlatSVGIcon("com/formdev/flatlaf/demo/icons/show.svg"));
+				toolBar.add(showToggleButton);
+			}
+			toolBarPanel.add(toolBar, BorderLayout.CENTER);
 		}
-		contentPane.add(toolBar, BorderLayout.NORTH);
+		contentPane.add(toolBarPanel, BorderLayout.PAGE_START);
 
 		//======== contentPanel ========
 		{
@@ -877,13 +932,25 @@ class DemoFrame
 				tabbedPane.addTab("Data Components", dataComponentsPanel);
 				tabbedPane.addTab("Tabs", tabsPanel);
 				tabbedPane.addTab("Option Pane", optionPanePanel);
-				tabbedPane.addTab("Extras", extrasPanel1);
+				tabbedPane.addTab("Extras", extrasPanel);
 			}
 			contentPanel.add(tabbedPane, "cell 0 0");
 		}
 		contentPane.add(contentPanel, BorderLayout.CENTER);
-		contentPane.add(controlBar, BorderLayout.SOUTH);
-		contentPane.add(themesPanel, BorderLayout.EAST);
+		contentPane.add(controlBar, BorderLayout.PAGE_END);
+
+		//======== themesPanelPanel ========
+		{
+			themesPanelPanel.setLayout(new BorderLayout());
+
+			//======== winFullWindowContentButtonsPlaceholder ========
+			{
+				winFullWindowContentButtonsPlaceholder.setLayout(new FlowLayout());
+			}
+			themesPanelPanel.add(winFullWindowContentButtonsPlaceholder, BorderLayout.NORTH);
+			themesPanelPanel.add(themesPanel, BorderLayout.CENTER);
+		}
+		contentPane.add(themesPanelPanel, BorderLayout.LINE_END);
 
 		//---- buttonGroup1 ----
 		ButtonGroup buttonGroup1 = new ButtonGroup();
@@ -898,23 +965,8 @@ class DemoFrame
 		usersButton.setButtonType( ButtonType.toolBarButton );
 		usersButton.setFocusable( false );
 		usersButton.addActionListener( e -> JOptionPane.showMessageDialog( null, "Hello User! How are you?", "User", JOptionPane.INFORMATION_MESSAGE ) );
-		menuBar1.add( Box.createGlue() );
-		menuBar1.add( usersButton );
-
-		undoMenuItem.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/undo.svg" ) );
-		redoMenuItem.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/redo.svg" ) );
-
-		cutMenuItem.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/menu-cut.svg" ) );
-		copyMenuItem.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/copy.svg" ) );
-		pasteMenuItem.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/menu-paste.svg" ) );
-
-		backButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/back.svg" ) );
-		forwardButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/forward.svg" ) );
-		cutButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/menu-cut.svg" ) );
-		copyButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/copy.svg" ) );
-		pasteButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/menu-paste.svg" ) );
-		refreshButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/refresh.svg" ) );
-		showToggleButton.setIcon( new FlatSVGIcon( "com/formdev/flatlaf/demo/icons/show.svg" ) );
+		menuBar.add( Box.createGlue() );
+		menuBar.add( usersButton );
 
 		cutMenuItem.addActionListener( new DefaultEditorKit.CutAction() );
 		copyMenuItem.addActionListener( new DefaultEditorKit.CopyAction() );
@@ -926,7 +978,7 @@ class DemoFrame
 		for( int i = 1; i <= 100; i++ )
 			scrollingPopupMenu.add( "Item " + i );
 
-		if( FlatLaf.supportsNativeWindowDecorations() || (SystemInfo.isLinux && JFrame.isDefaultLookAndFeelDecorated()) ) {
+		if( supportsFlatLafWindowDecorations() ) {
 			if( SystemInfo.isLinux )
 				unsupported( windowDecorationsCheckBoxMenuItem );
 			else
@@ -934,12 +986,6 @@ class DemoFrame
 			menuBarEmbeddedCheckBoxMenuItem.setSelected( UIManager.getBoolean( "TitlePane.menuBarEmbedded" ) );
 			unifiedTitleBarMenuItem.setSelected( UIManager.getBoolean( "TitlePane.unifiedBackground" ) );
 			showTitleBarIconMenuItem.setSelected( UIManager.getBoolean( "TitlePane.showIcon" ) );
-
-			if( JBRCustomDecorations.isSupported() ) {
-				// If the JetBrains Runtime is used, it forces the use of it's own custom
-				// window decoration, which can not disabled.
-				windowDecorationsCheckBoxMenuItem.setEnabled( false );
-			}
 		} else {
 			unsupported( windowDecorationsCheckBoxMenuItem );
 			unsupported( menuBarEmbeddedCheckBoxMenuItem );
@@ -949,6 +995,20 @@ class DemoFrame
 
 		if( SystemInfo.isMacOS )
 			unsupported( underlineMenuSelectionMenuItem );
+
+		if( "false".equals( System.getProperty( "flatlaf.animatedLafChange" ) ) )
+			animatedLafChangeMenuItem.setSelected( false );
+
+
+		// on macOS, panel left to toolBar is a placeholder for title bar buttons in fullWindowContent mode
+		macFullWindowContentButtonsPlaceholder.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER, "mac zeroInFullScreen" );
+
+		// on Windows/Linux, panel above themesPanel is a placeholder for title bar buttons in fullWindowContent mode
+		winFullWindowContentButtonsPlaceholder.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER, "win" );
+
+		// uncomment this line to see title bar buttons placeholders in fullWindowContent mode
+//		UIManager.put( "FlatLaf.debug.panel.showPlaceholders", true );
+
 
 		// remove contentPanel bottom insets
 		MigLayout layout = (MigLayout) contentPanel.getLayout();
@@ -970,6 +1030,7 @@ class DemoFrame
 	}
 
 	// JFormDesigner - Variables declaration - DO NOT MODIFY  //GEN-BEGIN:variables
+	private JMenuBar menuBar;
 	private JMenuItem exitMenuItem;
 	private JMenu scrollingPopupMenu;
 	private JMenuItem htmlMenuItem;

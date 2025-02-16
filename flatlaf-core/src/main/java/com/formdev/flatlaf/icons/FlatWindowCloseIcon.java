@@ -21,8 +21,8 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics2D;
 import java.awt.geom.Path2D;
-import javax.swing.UIManager;
 import com.formdev.flatlaf.ui.FlatButtonUI;
+import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.SystemInfo;
 
 /**
@@ -38,23 +38,32 @@ import com.formdev.flatlaf.util.SystemInfo;
 public class FlatWindowCloseIcon
 	extends FlatWindowAbstractIcon
 {
-	private final Color hoverForeground = UIManager.getColor( "TitlePane.closeHoverForeground" );
-	private final Color pressedForeground = UIManager.getColor( "TitlePane.closePressedForeground" );
+	private final Color hoverForeground;
+	private final Color pressedForeground;
 
 	public FlatWindowCloseIcon() {
-		super( UIManager.getDimension( "TitlePane.buttonSize" ),
-			UIManager.getColor( "TitlePane.closeHoverBackground" ),
-			UIManager.getColor( "TitlePane.closePressedBackground" ) );
+		this( null );
+	}
+
+	/** @since 3.2 */
+	public FlatWindowCloseIcon( String windowStyle ) {
+		super( FlatUIUtils.getSubUIDimension( "TitlePane.buttonSize", windowStyle ),
+			FlatUIUtils.getSubUIInt( "TitlePane.buttonSymbolHeight", windowStyle, 10 ),
+			FlatUIUtils.getSubUIColor( "TitlePane.closeHoverBackground", windowStyle ),
+			FlatUIUtils.getSubUIColor( "TitlePane.closePressedBackground", windowStyle ) );
+
+		hoverForeground = FlatUIUtils.getSubUIColor( "TitlePane.closeHoverForeground", windowStyle );
+		pressedForeground = FlatUIUtils.getSubUIColor( "TitlePane.closePressedForeground", windowStyle );
 	}
 
 	@Override
 	protected void paintIconAt1x( Graphics2D g, int x, int y, int width, int height, double scaleFactor ) {
-		int iwh = (int) (10 * scaleFactor);
+		int iwh = (int) (getSymbolHeight() * scaleFactor);
 		int ix = x + ((width - iwh) / 2);
 		int iy = y + ((height - iwh) / 2);
 		int ix2 = ix + iwh - 1;
 		int iy2 = iy + iwh - 1;
-		float thickness = SystemInfo.isWindows_11_orLater ? (float) scaleFactor : (int) scaleFactor;
+		float thickness = Math.max( SystemInfo.isWindows_11_orLater ? (float) scaleFactor : (int) scaleFactor, 1 );
 
 		Path2D path = new Path2D.Float( Path2D.WIND_EVEN_ODD, 4 );
 		path.moveTo( ix, iy );

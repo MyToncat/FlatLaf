@@ -16,6 +16,7 @@
 
 package com.formdev.flatlaf.ui;
 
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.beans.PropertyChangeEvent;
@@ -23,11 +24,14 @@ import java.beans.PropertyChangeListener;
 import java.util.Map;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
+import javax.swing.LookAndFeel;
+import javax.swing.border.Border;
 import javax.swing.plaf.ComponentUI;
 import javax.swing.plaf.basic.BasicPanelUI;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.ui.FlatStylingSupport.Styleable;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
+import com.formdev.flatlaf.util.HiDPIUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
 import com.formdev.flatlaf.util.UIScale;
 
@@ -69,6 +73,8 @@ public class FlatPanelUI
 		super.installUI( c );
 
 		c.addPropertyChangeListener( this );
+		if( c.getClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER ) != null )
+			FullWindowContentSupport.registerPlaceholder( c );
 
 		installStyle( (JPanel) c );
 	}
@@ -78,8 +84,18 @@ public class FlatPanelUI
 		super.uninstallUI( c );
 
 		c.removePropertyChangeListener( this );
+		if( c.getClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER ) != null )
+			FullWindowContentSupport.unregisterPlaceholder( c );
 
 		oldStyleValues = null;
+	}
+
+	@Override
+	protected void installDefaults( JPanel p ) {
+		super.installDefaults( p );
+
+		if( p.getClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER ) != null )
+			LookAndFeel.installProperty( p, "opaque", false );
 	}
 
 	/** @since 2.0.1 */
@@ -96,7 +112,18 @@ public class FlatPanelUI
 				} else
 					installStyle( c );
 				c.revalidate();
-				c.repaint();
+				HiDPIUtils.repaint( c );
+				break;
+
+			case FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER:
+				JPanel p = (JPanel) e.getSource();
+				if( e.getOldValue() != null )
+					FullWindowContentSupport.unregisterPlaceholder( p );
+				if( e.getNewValue() != null )
+					FullWindowContentSupport.registerPlaceholder( p );
+
+				// make panel non-opaque for placeholders
+				LookAndFeel.installProperty( p, "opaque", e.getNewValue() == null );
 				break;
 		}
 	}
@@ -135,31 +162,52 @@ public class FlatPanelUI
 
 	@Override
 	public void update( Graphics g, JComponent c ) {
-		// fill background
-		if( c.isOpaque() ) {
-			int width = c.getWidth();
-			int height = c.getHeight();
-			int arc = (this.arc >= 0)
-				? this.arc
-				: ((c.getBorder() instanceof FlatLineBorder)
-					? ((FlatLineBorder)c.getBorder()).getArc()
-					: 0);
+		fillRoundedBackground( g, c, arc );
+		paint( g, c );
+	}
 
-			// fill background with parent color to avoid garbage in rounded corners
-			if( arc > 0 )
-				FlatUIUtils.paintParentBackground( g, c );
-
-			g.setColor( c.getBackground() );
-			if( arc > 0 ) {
-				// fill rounded rectangle if having rounded corners
-				Object[] oldRenderingHints = FlatUIUtils.setRenderingHints( g );
-				FlatUIUtils.paintComponentBackground( (Graphics2D) g, 0, 0, width, height,
-					0, UIScale.scale( arc ) );
-				FlatUIUtils.resetRenderingHints( g, oldRenderingHints );
-			} else
-				g.fillRect( 0, 0, width, height );
+	/** @since 3.5 */
+	public static void fillRoundedBackground( Graphics g, JComponent c, int arc ) {
+		if( arc < 0 ) {
+			Border border = c.getBorder();
+			arc = ((border instanceof FlatLineBorder)
+				? ((FlatLineBorder)border).getArc()
+				: 0);
 		}
 
-		paint( g, c );
+		// fill background
+		if( c.isOpaque() ) {
+			if( arc > 0 ) {
+				// fill background with parent color to avoid garbage in rounded corners
+				FlatUIUtils.paintParentBackground( g, c );
+			} else {
+				g.setColor( c.getBackground() );
+				g.fillRect( 0, 0, c.getWidth(), c.getHeight() );
+			}
+		}
+
+		// fill rounded rectangle if having rounded corners
+		if( arc > 0 ) {
+			g.setColor( c.getBackground() );
+			Object[] oldRenderingHints = FlatUIUtils.setRenderingHints( g );
+			FlatUIUtils.paintComponentBackground( (Graphics2D) g, 0, 0, c.getWidth(), c.getHeight(),
+				0, UIScale.scale( arc ) );
+			FlatUIUtils.resetRenderingHints( g, oldRenderingHints );
+		}
+	}
+
+	@Override
+	public Dimension getPreferredSize( JComponent c ) {
+		Object value = c.getClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER );
+		if( value != null )
+			return FullWindowContentSupport.getPlaceholderPreferredSize( c, (String) value );
+
+		return super.getPreferredSize( c );
+	}
+
+	@Override
+	public void paint( Graphics g, JComponent c ) {
+		if( c.getClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_PLACEHOLDER ) != null )
+			FullWindowContentSupport.debugPaint( g, c );
 	}
 }

@@ -25,8 +25,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.swing.*;
+import javax.swing.border.TitledBorder;
 import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.extras.components.FlatTriStateCheckBox;
 import com.formdev.flatlaf.ui.FlatUIUtils;
 import com.formdev.flatlaf.util.MultiResolutionImageSupport;
@@ -39,6 +43,9 @@ import net.miginfocom.swing.*;
 public class FlatWindowDecorationsTest
 	extends FlatTestPanel
 {
+	// same as in FlatTitlePane
+	private static final String KEY_DEBUG_SHOW_RECTANGLES = "FlatLaf.debug.titlebar.showRectangles";
+
 	public static void main( String[] args ) {
 		SwingUtilities.invokeLater( () -> {
 			if( SystemInfo.isLinux ) {
@@ -49,7 +56,7 @@ public class FlatWindowDecorationsTest
 
 			FlatTestFrame frame = FlatTestFrame.create( args, "FlatWindowDecorationsTest" );
 			frame.applyComponentOrientationToFrame = true;
-			UIManager.put( "FlatLaf.debug.titlebar.showRectangles", true );
+			UIManager.put( KEY_DEBUG_SHOW_RECTANGLES, true );
 
 			Class<?> cls = FlatWindowDecorationsTest.class;
 			List<Image> images = Arrays.asList(
@@ -69,9 +76,18 @@ public class FlatWindowDecorationsTest
 	}
 
 	private List<Image> images;
+	private Timer refreshStateTimer;
 
 	FlatWindowDecorationsTest() {
 		initComponents();
+	}
+
+	@Override
+	public void updateUI() {
+		super.updateUI();
+
+		if( translucentWindowBackgroundCheckBox != null )
+			translucentWindowBackgroundChanged();
 	}
 
 	@Override
@@ -107,6 +123,60 @@ public class FlatWindowDecorationsTest
 			rootPane.addPropertyChangeListener( "windowDecorationStyle", e -> {
 				updateDecorationStyleRadioButtons( rootPane );
 			} );
+			rootPane.addPropertyChangeListener( FlatClientProperties.FULL_WINDOW_CONTENT_BUTTONS_BOUNDS, e -> {
+				Rectangle bounds = (Rectangle) e.getNewValue();
+				if( bounds != null ) {
+					fullWindowContentButtonsBoundsField.setText( bounds.width + ", " + bounds.height
+						+ "   @ " + bounds.x + ", " + bounds.y );
+				} else
+					fullWindowContentButtonsBoundsField.setText( "null" );
+
+				fullWindowContentButtonsBoundsLabel.setEnabled( bounds != null );
+				fullWindowContentButtonsBoundsField.setEnabled( bounds != null );
+			} );
+		}
+
+		if( window instanceof Frame ) {
+			AtomicInteger lastState = new AtomicInteger( -1 );
+			AtomicReference<Window> lastFullScreenWindow = new AtomicReference<>();
+			refreshStateTimer = new Timer( 500, e -> {
+				Frame frame = (Frame) window;
+				int state = frame.getExtendedState();
+				Window fullScreenWindow = window.getGraphicsConfiguration().getDevice().getFullScreenWindow();
+				if( state != lastState.get() || fullScreenWindow != lastFullScreenWindow.get() ) {
+					lastState.set( state );
+					lastFullScreenWindow.set( fullScreenWindow );
+
+					String s = "";
+					if( (state & Frame.ICONIFIED) != 0 )
+						s += "iconified ";
+					if( (state & Frame.MAXIMIZED_BOTH) == Frame.MAXIMIZED_BOTH )
+						s += "maximized ";
+					else {
+						if( (state & Frame.MAXIMIZED_HORIZ) != 0 )
+							s += "maximized-horizontal ";
+						if( (state & Frame.MAXIMIZED_VERT) != 0 )
+							s += "maximized-vertical ";
+					}
+					if( fullScreenWindow == window )
+						s += "full-screen ";
+					if( s.isEmpty() )
+						s = "normal";
+
+					frameStateField.setText( s );
+				}
+			} );
+			refreshStateTimer.start();
+		}
+	}
+
+	@Override
+	public void removeNotify() {
+		super.removeNotify();
+
+		if( refreshStateTimer != null ) {
+			refreshStateTimer.stop();
+			refreshStateTimer = null;
 		}
 	}
 
@@ -130,6 +200,10 @@ public class FlatWindowDecorationsTest
 			styleColorChooserRadioButton.setSelected( true );
 		else if( style == JRootPane.FILE_CHOOSER_DIALOG )
 			styleFileChooserRadioButton.setSelected( true );
+	}
+
+	private void windowDecorationsChanged() {
+		FlatLaf.setUseNativeWindowDecorations( windowDecorationsCheckBox.isSelected() );
 	}
 
 	private void unifiedBackgroundChanged() {
@@ -164,9 +238,10 @@ public class FlatWindowDecorationsTest
 
 		if( rightCompCheckBox.isSelected() ) {
 			rightStretchCompCheckBox.setSelected( false );
+			tallCompCheckBox.setSelected( false );
 
 			JButton myButton = new JButton( "?" );
-			myButton.putClientProperty( "JButton.buttonType", "toolBarButton" );
+			myButton.putClientProperty( FlatClientProperties.BUTTON_TYPE, FlatClientProperties.BUTTON_TYPE_TOOLBAR_BUTTON );
 			myButton.setFocusable( false );
 
 			menuBar.add( Box.createGlue() );
@@ -182,9 +257,24 @@ public class FlatWindowDecorationsTest
 
 		if( rightStretchCompCheckBox.isSelected() ) {
 			rightCompCheckBox.setSelected( false );
+			tallCompCheckBox.setSelected( false );
 
 			menuBar.add( Box.createGlue() );
 			menuBar.add( new JProgressBar() );
+		}
+
+		menuBar.revalidate();
+		menuBar.repaint();
+	}
+
+	private void tallCompChanged() {
+		removeNonMenusFromMenuBar();
+
+		if( tallCompCheckBox.isSelected() ) {
+			rightCompCheckBox.setSelected( false );
+			rightStretchCompCheckBox.setSelected( false );
+
+			menuBar.add( new JButton( "<html>large<br>button<br>large<br>button</html>" ) );
 		}
 
 		menuBar.revalidate();
@@ -231,6 +321,27 @@ public class FlatWindowDecorationsTest
 		}
 	}
 
+	private void translucentWindowBackgroundChanged() {
+		boolean selected = translucentWindowBackgroundCheckBox.isSelected();
+		if( selected && !undecoratedCheckBox.isSelected() ) {
+			undecoratedCheckBox.setSelected( true );
+			undecoratedChanged();
+		}
+		undecoratedCheckBox.setEnabled( !selected );
+
+		Color background = selected
+			? new Color( 100, 0, 0, 100 )
+			: UIManager.getColor( "control" );
+
+		Window window = SwingUtilities.windowForComponent( this );
+		window.setBackground( background );
+
+		for( Component c = this; c != null; c = c.getParent() ) {
+			if( c instanceof JComponent )
+				LookAndFeel.installProperty( (JComponent) c, "opaque", !selected );
+		}
+	}
+
 	private void addMenu() {
 		JMenu menu = new JMenu( "Hello" );
 		menu.add( new JMenuItem( "world" ) );
@@ -274,9 +385,18 @@ debug*/
 		JLabel caption = new JLabel( "Caption" );
 		caption.setBackground( Color.green );
 		caption.setOpaque( true );
-		caption.putClientProperty( FlatClientProperties.COMPONENT_TITLE_BAR_CAPTION, true );
 
 		menuBar.add( caption );
+		menuBar.revalidate();
+	}
+
+	private void addTextField() {
+		JTextField textField = new JTextField( "text", 10 );
+
+		JPanel panel = new JPanel( new GridBagLayout() );
+		panel.add( textField, new GridBagConstraints() );
+
+		menuBar.add( panel );
 		menuBar.revalidate();
 	}
 
@@ -355,6 +475,7 @@ debug*/
 	private void openDialog() {
 		Window owner = SwingUtilities.windowForComponent( this );
 		JDialog dialog = new JDialog( owner, "Dialog", ModalityType.DOCUMENT_MODAL );
+		initWindowType( dialog );
 		dialog.setDefaultCloseOperation( JDialog.DISPOSE_ON_CLOSE );
 		dialog.add( new FlatWindowDecorationsTest() );
 		dialog.pack();
@@ -365,12 +486,20 @@ debug*/
 	private void openFrame() {
 		FlatWindowDecorationsTest comp = new FlatWindowDecorationsTest();
 		JFrame frame = new JFrame( "Frame" );
+		initWindowType( frame );
 		frame.setDefaultCloseOperation( JFrame.DISPOSE_ON_CLOSE );
 		frame.add( comp );
 		frame.setJMenuBar( comp.menuBar );
 		frame.pack();
 		frame.setLocationRelativeTo( this );
 		frame.setVisible( true );
+	}
+
+	private void initWindowType( Window window ) {
+		if( typeUtilityRadioButton.isSelected() )
+			window.setType( Window.Type.UTILITY );
+		else if( typeSmallRadioButton.isSelected() )
+			((RootPaneContainer)window).getRootPane().putClientProperty( FlatClientProperties.WINDOW_STYLE, FlatClientProperties.WINDOW_STYLE_SMALL );
 	}
 
 	private void decorationStyleChanged() {
@@ -471,39 +600,77 @@ debug*/
 			rootPane.putClientProperty( FlatClientProperties.TITLE_BAR_SHOW_CLOSE, showCloseCheckBox.isSelected() ? null : false );
 	}
 
+	private void fullWindowContentChanged() {
+		JRootPane rootPane = getWindowRootPane();
+		if( rootPane != null ) {
+			boolean selected = fullWindowContentCheckBox.isSelected();
+			rootPane.putClientProperty( FlatClientProperties.FULL_WINDOW_CONTENT, selected ? true : null );
+
+			showIconCheckBox.setEnabled( !selected );
+			showTitleCheckBox.setEnabled( !selected );
+		}
+	}
+
+	private void titleBarHeightChanged() {
+		JRootPane rootPane = getWindowRootPane();
+		if( rootPane != null ) {
+			boolean enabled = titleBarHeightCheckBox.isSelected();
+			titleBarHeightField.setEnabled( enabled );
+
+			rootPane.putClientProperty( FlatClientProperties.TITLE_BAR_HEIGHT, enabled ? titleBarHeightField.getValue() : null );
+		}
+	}
+
 	private JRootPane getWindowRootPane() {
 		Window window = SwingUtilities.windowForComponent( this );
-		if( window instanceof JFrame )
-			return ((JFrame)window).getRootPane();
-		else if( window instanceof JDialog )
-			return ((JDialog)window).getRootPane();
-		return null;
+		return (window instanceof RootPaneContainer)
+			? ((RootPaneContainer)window).getRootPane()
+			: null;
+	}
+
+	private void showRectangles() {
+		JRootPane rootPane = getWindowRootPane();
+		if( rootPane != null ) {
+			UIManager.put( KEY_DEBUG_SHOW_RECTANGLES, showRectanglesCheckBox.isSelected() );
+			rootPane.revalidate();
+			rootPane.repaint();
+		}
 	}
 
 	private void initComponents() {
 		// JFormDesigner - Component initialization - DO NOT MODIFY  //GEN-BEGIN:initComponents
+		JPanel panel7 = new JPanel();
+		windowDecorationsCheckBox = new JCheckBox();
+		resizableCheckBox = new JCheckBox();
+		undecoratedCheckBox = new JCheckBox();
+		fullScreenCheckBox = new JCheckBox();
+		maximizedBoundsCheckBox = new JCheckBox();
+		JPanel panel4 = new JPanel();
+		showIconCheckBox = new FlatTriStateCheckBox();
+		titleBarHeightCheckBox = new JCheckBox();
+		showTitleCheckBox = new JCheckBox();
+		titleBarHeightField = new JSpinner();
+		showIconifyCheckBox = new JCheckBox();
+		showMaximizeCheckBox = new JCheckBox();
+		showCloseCheckBox = new JCheckBox();
+		fullWindowContentCheckBox = new JCheckBox();
+		fullWindowContentButtonsBoundsLabel = new JLabel();
+		fullWindowContentButtonsBoundsField = new JLabel();
+		JPanel panel6 = new JPanel();
 		menuBarCheckBox = new JCheckBox();
+		menuBarEmbeddedCheckBox = new JCheckBox();
+		menuBarVisibleCheckBox = new JCheckBox();
 		rightCompCheckBox = new JCheckBox();
+		rightStretchCompCheckBox = new JCheckBox();
+		tallCompCheckBox = new JCheckBox();
 		JPanel panel3 = new JPanel();
 		addMenuButton = new JButton();
 		addGlueButton = new JButton();
 		addCaptionButton = new JButton();
+		addTextFieldButton = new JButton();
 		removeMenuButton = new JButton();
 		changeMenuButton = new JButton();
 		changeTitleButton = new JButton();
-		menuBarEmbeddedCheckBox = new JCheckBox();
-		rightStretchCompCheckBox = new JCheckBox();
-		menuBarVisibleCheckBox = new JCheckBox();
-		colorizeMenuBarCheckBox = new JCheckBox();
-		unifiedBackgroundCheckBox = new JCheckBox();
-		colorizeMenusCheckBox = new JCheckBox();
-		colorizeTitleBarCheckBox = new JCheckBox();
-		resizableCheckBox = new JCheckBox();
-		maximizedBoundsCheckBox = new JCheckBox();
-		undecoratedCheckBox = new JCheckBox();
-		fullScreenCheckBox = new JCheckBox();
-		JLabel label1 = new JLabel();
-		JLabel label2 = new JLabel();
 		JPanel panel1 = new JPanel();
 		styleNoneRadioButton = new JRadioButton();
 		styleFrameRadioButton = new JRadioButton();
@@ -520,14 +687,21 @@ debug*/
 		iconTestRandomRadioButton = new JRadioButton();
 		iconTestMRIRadioButton = new JRadioButton();
 		iconTestDynMRIRadioButton = new JRadioButton();
-		JPanel panel4 = new JPanel();
-		showIconCheckBox = new FlatTriStateCheckBox();
-		showTitleCheckBox = new JCheckBox();
-		showIconifyCheckBox = new JCheckBox();
-		showMaximizeCheckBox = new JCheckBox();
-		showCloseCheckBox = new JCheckBox();
+		JPanel panel5 = new JPanel();
+		unifiedBackgroundCheckBox = new JCheckBox();
+		colorizeTitleBarCheckBox = new JCheckBox();
+		colorizeMenuBarCheckBox = new JCheckBox();
+		colorizeMenusCheckBox = new JCheckBox();
+		translucentWindowBackgroundCheckBox = new JCheckBox();
 		JButton openDialogButton = new JButton();
 		JButton openFrameButton = new JButton();
+		typeNormalRadioButton = new JRadioButton();
+		typeUtilityRadioButton = new JRadioButton();
+		typeSmallRadioButton = new JRadioButton();
+		showRectanglesCheckBox = new JCheckBox();
+		JPanel hSpacer1 = new JPanel(null);
+		JLabel frameStateLabel = new JLabel();
+		frameStateField = new JLabel();
 		menuBar = new JMenuBar();
 		JMenu fileMenu = new JMenu();
 		JMenuItem newMenuItem = new JMenuItem();
@@ -559,31 +733,183 @@ debug*/
 		setLayout(new MigLayout(
 			"ltr,insets dialog,hidemode 3",
 			// columns
-			"[left]para" +
 			"[left]" +
+			"[fill]" +
+			"[fill]" +
 			"[fill]",
 			// rows
-			"para[]0" +
-			"[]0" +
-			"[]0" +
-			"[]0" +
-			"[]unrel" +
-			"[]0" +
-			"[]unrel" +
+			"[fill]" +
+			"[fill]" +
 			"[]" +
-			"[top]" +
-			"[]"));
+			"[]" +
+			"[40]"));
 
-		//---- menuBarCheckBox ----
-		menuBarCheckBox.setText("menu bar");
-		menuBarCheckBox.setSelected(true);
-		menuBarCheckBox.addActionListener(e -> menuBarChanged());
-		add(menuBarCheckBox, "cell 0 0");
+		//======== panel7 ========
+		{
+			panel7.setBorder(new TitledBorder("Window"));
+			panel7.setLayout(new MigLayout(
+				"ltr,hidemode 3,gap 0 0",
+				// columns
+				"[left]",
+				// rows
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]"));
 
-		//---- rightCompCheckBox ----
-		rightCompCheckBox.setText("right aligned component");
-		rightCompCheckBox.addActionListener(e -> rightCompChanged());
-		add(rightCompCheckBox, "cell 1 0");
+			//---- windowDecorationsCheckBox ----
+			windowDecorationsCheckBox.setText("FlatLaf window decorations");
+			windowDecorationsCheckBox.setSelected(true);
+			windowDecorationsCheckBox.addActionListener(e -> windowDecorationsChanged());
+			panel7.add(windowDecorationsCheckBox, "cell 0 0");
+
+			//---- resizableCheckBox ----
+			resizableCheckBox.setText("resizable");
+			resizableCheckBox.setSelected(true);
+			resizableCheckBox.addActionListener(e -> resizableChanged());
+			panel7.add(resizableCheckBox, "cell 0 1");
+
+			//---- undecoratedCheckBox ----
+			undecoratedCheckBox.setText("undecorated");
+			undecoratedCheckBox.addActionListener(e -> undecoratedChanged());
+			panel7.add(undecoratedCheckBox, "cell 0 2");
+
+			//---- fullScreenCheckBox ----
+			fullScreenCheckBox.setText("full screen");
+			fullScreenCheckBox.addActionListener(e -> fullScreenChanged());
+			panel7.add(fullScreenCheckBox, "cell 0 3");
+
+			//---- maximizedBoundsCheckBox ----
+			maximizedBoundsCheckBox.setText("maximized bounds (50,100, 1000,700)");
+			maximizedBoundsCheckBox.addActionListener(e -> maximizedBoundsChanged());
+			panel7.add(maximizedBoundsCheckBox, "cell 0 4");
+		}
+		add(panel7, "cell 0 0,growx");
+
+		//======== panel4 ========
+		{
+			panel4.setBorder(new TitledBorder("Title Bar"));
+			panel4.setLayout(new MigLayout(
+				"ltr,hidemode 3,gap 0 0",
+				// columns
+				"[grow,left]" +
+				"[fill]",
+				// rows
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]rel" +
+				"[]rel" +
+				"[]"));
+
+			//---- showIconCheckBox ----
+			showIconCheckBox.setText("show icon");
+			showIconCheckBox.addActionListener(e -> showIconChanged());
+			panel4.add(showIconCheckBox, "cell 0 0");
+
+			//---- titleBarHeightCheckBox ----
+			titleBarHeightCheckBox.setText("Height:");
+			titleBarHeightCheckBox.addActionListener(e -> titleBarHeightChanged());
+			panel4.add(titleBarHeightCheckBox, "cell 1 0");
+
+			//---- showTitleCheckBox ----
+			showTitleCheckBox.setText("show title");
+			showTitleCheckBox.setSelected(true);
+			showTitleCheckBox.addActionListener(e -> showTitleChanged());
+			panel4.add(showTitleCheckBox, "cell 0 1");
+
+			//---- titleBarHeightField ----
+			titleBarHeightField.setEnabled(false);
+			titleBarHeightField.setModel(new SpinnerNumberModel(44, null, null, 2));
+			titleBarHeightField.addChangeListener(e -> titleBarHeightChanged());
+			panel4.add(titleBarHeightField, "cell 1 1");
+
+			//---- showIconifyCheckBox ----
+			showIconifyCheckBox.setText("show iconfiy");
+			showIconifyCheckBox.setSelected(true);
+			showIconifyCheckBox.addActionListener(e -> showIconifyChanged());
+			panel4.add(showIconifyCheckBox, "cell 0 2");
+
+			//---- showMaximizeCheckBox ----
+			showMaximizeCheckBox.setText("show maximize");
+			showMaximizeCheckBox.setSelected(true);
+			showMaximizeCheckBox.addActionListener(e -> showMaximizeChanged());
+			panel4.add(showMaximizeCheckBox, "cell 0 3");
+
+			//---- showCloseCheckBox ----
+			showCloseCheckBox.setText("show close");
+			showCloseCheckBox.setSelected(true);
+			showCloseCheckBox.addActionListener(e -> showCloseChanged());
+			panel4.add(showCloseCheckBox, "cell 0 4");
+
+			//---- fullWindowContentCheckBox ----
+			fullWindowContentCheckBox.setText("full window content");
+			fullWindowContentCheckBox.addActionListener(e -> fullWindowContentChanged());
+			panel4.add(fullWindowContentCheckBox, "cell 0 5");
+
+			//---- fullWindowContentButtonsBoundsLabel ----
+			fullWindowContentButtonsBoundsLabel.setText("Buttons bounds:");
+			fullWindowContentButtonsBoundsLabel.setEnabled(false);
+			panel4.add(fullWindowContentButtonsBoundsLabel, "cell 0 6");
+
+			//---- fullWindowContentButtonsBoundsField ----
+			fullWindowContentButtonsBoundsField.setText("null");
+			fullWindowContentButtonsBoundsField.setEnabled(false);
+			panel4.add(fullWindowContentButtonsBoundsField, "cell 0 6");
+		}
+		add(panel4, "cell 1 0");
+
+		//======== panel6 ========
+		{
+			panel6.setBorder(new TitledBorder("Menu Bar"));
+			panel6.setLayout(new MigLayout(
+				"ltr,hidemode 3,gap 0 0",
+				// columns
+				"[left]",
+				// rows
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]" +
+				"[]"));
+
+			//---- menuBarCheckBox ----
+			menuBarCheckBox.setText("menu bar");
+			menuBarCheckBox.setSelected(true);
+			menuBarCheckBox.addActionListener(e -> menuBarChanged());
+			panel6.add(menuBarCheckBox, "cell 0 0");
+
+			//---- menuBarEmbeddedCheckBox ----
+			menuBarEmbeddedCheckBox.setText("embedded menu bar");
+			menuBarEmbeddedCheckBox.setSelected(true);
+			menuBarEmbeddedCheckBox.addActionListener(e -> menuBarEmbeddedChanged());
+			panel6.add(menuBarEmbeddedCheckBox, "cell 0 1");
+
+			//---- menuBarVisibleCheckBox ----
+			menuBarVisibleCheckBox.setText("menu bar visible");
+			menuBarVisibleCheckBox.setSelected(true);
+			menuBarVisibleCheckBox.addActionListener(e -> menuBarVisibleChanged());
+			panel6.add(menuBarVisibleCheckBox, "cell 0 2");
+
+			//---- rightCompCheckBox ----
+			rightCompCheckBox.setText("right aligned component");
+			rightCompCheckBox.addActionListener(e -> rightCompChanged());
+			panel6.add(rightCompCheckBox, "cell 0 3");
+
+			//---- rightStretchCompCheckBox ----
+			rightStretchCompCheckBox.setText("right aligned stretching component");
+			rightStretchCompCheckBox.addActionListener(e -> rightStretchCompChanged());
+			panel6.add(rightStretchCompCheckBox, "cell 0 4");
+
+			//---- tallCompCheckBox ----
+			tallCompCheckBox.setText("tall component");
+			tallCompCheckBox.addActionListener(e -> tallCompChanged());
+			panel6.add(tallCompCheckBox, "cell 0 5");
+		}
+		add(panel6, "cell 2 0");
 
 		//======== panel3 ========
 		{
@@ -592,6 +918,7 @@ debug*/
 				// columns
 				"[fill]",
 				// rows
+				"[]" +
 				"[]" +
 				"[]" +
 				"[]" +
@@ -614,95 +941,35 @@ debug*/
 			addCaptionButton.addActionListener(e -> addCaption());
 			panel3.add(addCaptionButton, "cell 0 2");
 
+			//---- addTextFieldButton ----
+			addTextFieldButton.setText("Add text field");
+			addTextFieldButton.addActionListener(e -> addTextField());
+			panel3.add(addTextFieldButton, "cell 0 3");
+
 			//---- removeMenuButton ----
 			removeMenuButton.setText("Remove menu");
 			removeMenuButton.addActionListener(e -> removeMenu());
-			panel3.add(removeMenuButton, "cell 0 3");
+			panel3.add(removeMenuButton, "cell 0 4");
 
 			//---- changeMenuButton ----
 			changeMenuButton.setText("Change menu");
 			changeMenuButton.addActionListener(e -> changeMenu());
-			panel3.add(changeMenuButton, "cell 0 4");
+			panel3.add(changeMenuButton, "cell 0 5");
 
 			//---- changeTitleButton ----
 			changeTitleButton.setText("Change title");
 			changeTitleButton.addActionListener(e -> changeTitle());
-			panel3.add(changeTitleButton, "cell 0 5");
+			panel3.add(changeTitleButton, "cell 0 6");
 		}
-		add(panel3, "cell 2 0 1 8,aligny top,growy 0");
-
-		//---- menuBarEmbeddedCheckBox ----
-		menuBarEmbeddedCheckBox.setText("embedded menu bar");
-		menuBarEmbeddedCheckBox.setSelected(true);
-		menuBarEmbeddedCheckBox.addActionListener(e -> menuBarEmbeddedChanged());
-		add(menuBarEmbeddedCheckBox, "cell 0 1");
-
-		//---- rightStretchCompCheckBox ----
-		rightStretchCompCheckBox.setText("right aligned stretching component");
-		rightStretchCompCheckBox.addActionListener(e -> rightStretchCompChanged());
-		add(rightStretchCompCheckBox, "cell 1 1");
-
-		//---- menuBarVisibleCheckBox ----
-		menuBarVisibleCheckBox.setText("menu bar visible");
-		menuBarVisibleCheckBox.setSelected(true);
-		menuBarVisibleCheckBox.addActionListener(e -> menuBarVisibleChanged());
-		add(menuBarVisibleCheckBox, "cell 0 2");
-
-		//---- colorizeMenuBarCheckBox ----
-		colorizeMenuBarCheckBox.setText("colorize menu bar");
-		colorizeMenuBarCheckBox.addActionListener(e -> colorizeMenuBar());
-		add(colorizeMenuBarCheckBox, "cell 1 2");
-
-		//---- unifiedBackgroundCheckBox ----
-		unifiedBackgroundCheckBox.setText("unified background");
-		unifiedBackgroundCheckBox.addActionListener(e -> unifiedBackgroundChanged());
-		add(unifiedBackgroundCheckBox, "cell 0 3");
-
-		//---- colorizeMenusCheckBox ----
-		colorizeMenusCheckBox.setText("colorize menus");
-		colorizeMenusCheckBox.addActionListener(e -> colorizeMenus());
-		add(colorizeMenusCheckBox, "cell 1 3");
-
-		//---- colorizeTitleBarCheckBox ----
-		colorizeTitleBarCheckBox.setText("colorize title bar");
-		colorizeTitleBarCheckBox.addActionListener(e -> colorizeTitleBar());
-		add(colorizeTitleBarCheckBox, "cell 0 4");
-
-		//---- resizableCheckBox ----
-		resizableCheckBox.setText("resizable");
-		resizableCheckBox.setSelected(true);
-		resizableCheckBox.addActionListener(e -> resizableChanged());
-		add(resizableCheckBox, "cell 0 5");
-
-		//---- maximizedBoundsCheckBox ----
-		maximizedBoundsCheckBox.setText("maximized bounds (50,100, 1000,700)");
-		maximizedBoundsCheckBox.addActionListener(e -> maximizedBoundsChanged());
-		add(maximizedBoundsCheckBox, "cell 1 5");
-
-		//---- undecoratedCheckBox ----
-		undecoratedCheckBox.setText("undecorated");
-		undecoratedCheckBox.addActionListener(e -> undecoratedChanged());
-		add(undecoratedCheckBox, "cell 0 6");
-
-		//---- fullScreenCheckBox ----
-		fullScreenCheckBox.setText("full screen");
-		fullScreenCheckBox.addActionListener(e -> fullScreenChanged());
-		add(fullScreenCheckBox, "cell 1 6");
-
-		//---- label1 ----
-		label1.setText("Style:");
-		add(label1, "cell 0 7");
-
-		//---- label2 ----
-		label2.setText("Icon:");
-		add(label2, "cell 1 7");
+		add(panel3, "cell 3 0 1 2,aligny top,growy 0");
 
 		//======== panel1 ========
 		{
+			panel1.setBorder(new TitledBorder("Window Decoration Style"));
 			panel1.setLayout(new MigLayout(
-				"ltr,insets 0,hidemode 3,gap 0 0",
+				"ltr,hidemode 3,gap 0 0",
 				// columns
-				"[fill]",
+				"[left]",
 				// rows
 				"[]" +
 				"[]" +
@@ -760,12 +1027,13 @@ debug*/
 			styleFileChooserRadioButton.addActionListener(e -> decorationStyleChanged());
 			panel1.add(styleFileChooserRadioButton, "cell 0 8");
 		}
-		add(panel1, "cell 0 8");
+		add(panel1, "cell 0 1,growx");
 
 		//======== panel2 ========
 		{
+			panel2.setBorder(new TitledBorder("Window Icon"));
 			panel2.setLayout(new MigLayout(
-				"ltr,insets 0,hidemode 3,gap 0 0",
+				"ltr,hidemode 3,gap 0 0",
 				// columns
 				"[left]",
 				// rows
@@ -773,7 +1041,6 @@ debug*/
 				"[]" +
 				"[]" +
 				"[]" +
-				"[]rel" +
 				"[]"));
 
 			//---- iconNoneRadioButton ----
@@ -802,62 +1069,88 @@ debug*/
 			iconTestDynMRIRadioButton.addActionListener(e -> iconChanged());
 			panel2.add(iconTestDynMRIRadioButton, "cell 0 4");
 		}
-		add(panel2, "cell 1 8");
+		add(panel2, "cell 1 1");
 
-		//======== panel4 ========
+		//======== panel5 ========
 		{
-			panel4.setLayout(new MigLayout(
-				"ltr,insets 0,hidemode 3,gap 0 0",
+			panel5.setBorder(new TitledBorder("Color"));
+			panel5.setLayout(new MigLayout(
+				"ltr,hidemode 3,gap 0 0",
 				// columns
-				"[grow,left]",
+				"[left]",
 				// rows
 				"[]" +
 				"[]" +
 				"[]" +
-				"[]" +
+				"[]para" +
 				"[]"));
 
-			//---- showIconCheckBox ----
-			showIconCheckBox.setText("show icon");
-			showIconCheckBox.addActionListener(e -> showIconChanged());
-			panel4.add(showIconCheckBox, "cell 0 0");
+			//---- unifiedBackgroundCheckBox ----
+			unifiedBackgroundCheckBox.setText("unified background");
+			unifiedBackgroundCheckBox.addActionListener(e -> unifiedBackgroundChanged());
+			panel5.add(unifiedBackgroundCheckBox, "cell 0 0");
 
-			//---- showTitleCheckBox ----
-			showTitleCheckBox.setText("show title");
-			showTitleCheckBox.setSelected(true);
-			showTitleCheckBox.addActionListener(e -> showTitleChanged());
-			panel4.add(showTitleCheckBox, "cell 0 1");
+			//---- colorizeTitleBarCheckBox ----
+			colorizeTitleBarCheckBox.setText("colorize title bar");
+			colorizeTitleBarCheckBox.addActionListener(e -> colorizeTitleBar());
+			panel5.add(colorizeTitleBarCheckBox, "cell 0 1");
 
-			//---- showIconifyCheckBox ----
-			showIconifyCheckBox.setText("show iconfiy");
-			showIconifyCheckBox.setSelected(true);
-			showIconifyCheckBox.addActionListener(e -> showIconifyChanged());
-			panel4.add(showIconifyCheckBox, "cell 0 2");
+			//---- colorizeMenuBarCheckBox ----
+			colorizeMenuBarCheckBox.setText("colorize menu bar");
+			colorizeMenuBarCheckBox.addActionListener(e -> colorizeMenuBar());
+			panel5.add(colorizeMenuBarCheckBox, "cell 0 2");
 
-			//---- showMaximizeCheckBox ----
-			showMaximizeCheckBox.setText("show maximize");
-			showMaximizeCheckBox.setSelected(true);
-			showMaximizeCheckBox.addActionListener(e -> showMaximizeChanged());
-			panel4.add(showMaximizeCheckBox, "cell 0 3");
+			//---- colorizeMenusCheckBox ----
+			colorizeMenusCheckBox.setText("colorize menus");
+			colorizeMenusCheckBox.addActionListener(e -> colorizeMenus());
+			panel5.add(colorizeMenusCheckBox, "cell 0 3");
 
-			//---- showCloseCheckBox ----
-			showCloseCheckBox.setText("show close");
-			showCloseCheckBox.setSelected(true);
-			showCloseCheckBox.addActionListener(e -> showCloseChanged());
-			panel4.add(showCloseCheckBox, "cell 0 4");
+			//---- translucentWindowBackgroundCheckBox ----
+			translucentWindowBackgroundCheckBox.setText("translucent window background");
+			translucentWindowBackgroundCheckBox.addActionListener(e -> translucentWindowBackgroundChanged());
+			panel5.add(translucentWindowBackgroundCheckBox, "cell 0 4");
 		}
-		add(panel4, "cell 2 8");
+		add(panel5, "cell 2 1");
 
 		//---- openDialogButton ----
 		openDialogButton.setText("Open Dialog");
 		openDialogButton.addActionListener(e -> openDialog());
-		add(openDialogButton, "cell 0 9 2 1");
+		add(openDialogButton, "cell 0 2 3 1");
 
 		//---- openFrameButton ----
 		openFrameButton.setText("Open Frame");
 		openFrameButton.setMnemonic('A');
 		openFrameButton.addActionListener(e -> openFrame());
-		add(openFrameButton, "cell 0 9 2 1");
+		add(openFrameButton, "cell 0 2 3 1");
+
+		//---- typeNormalRadioButton ----
+		typeNormalRadioButton.setText("Normal");
+		typeNormalRadioButton.setSelected(true);
+		add(typeNormalRadioButton, "cell 0 2 3 1");
+
+		//---- typeUtilityRadioButton ----
+		typeUtilityRadioButton.setText("Utility");
+		add(typeUtilityRadioButton, "cell 0 2 3 1");
+
+		//---- typeSmallRadioButton ----
+		typeSmallRadioButton.setText("Small");
+		add(typeSmallRadioButton, "cell 0 2 3 1");
+
+		//---- showRectanglesCheckBox ----
+		showRectanglesCheckBox.setText("Show debug title bar rectangles");
+		showRectanglesCheckBox.setSelected(true);
+		showRectanglesCheckBox.addActionListener(e -> showRectangles());
+		add(showRectanglesCheckBox, "cell 0 3");
+		add(hSpacer1, "cell 2 3 2 1");
+
+		//---- frameStateLabel ----
+		frameStateLabel.setText("Frame state:");
+		add(frameStateLabel, "cell 2 3 2 1,alignx right,growx 0");
+
+		//---- frameStateField ----
+		frameStateField.setText("n/a");
+		frameStateField.setFont(frameStateField.getFont().deriveFont(frameStateField.getFont().getStyle() | Font.BOLD));
+		add(frameStateField, "cell 2 3 2 1,alignx right,growx 0");
 
 		//======== menuBar ========
 		{
@@ -1046,29 +1339,44 @@ debug*/
 		iconButtonGroup.add(iconTestRandomRadioButton);
 		iconButtonGroup.add(iconTestMRIRadioButton);
 		iconButtonGroup.add(iconTestDynMRIRadioButton);
+
+		//---- typeButtonGroup ----
+		ButtonGroup typeButtonGroup = new ButtonGroup();
+		typeButtonGroup.add(typeNormalRadioButton);
+		typeButtonGroup.add(typeUtilityRadioButton);
+		typeButtonGroup.add(typeSmallRadioButton);
 		// JFormDesigner - End of component initialization  //GEN-END:initComponents
 	}
 
 	// JFormDesigner - Variables declaration - DO NOT MODIFY  //GEN-BEGIN:variables
+	private JCheckBox windowDecorationsCheckBox;
+	private JCheckBox resizableCheckBox;
+	private JCheckBox undecoratedCheckBox;
+	private JCheckBox fullScreenCheckBox;
+	private JCheckBox maximizedBoundsCheckBox;
+	private FlatTriStateCheckBox showIconCheckBox;
+	private JCheckBox titleBarHeightCheckBox;
+	private JCheckBox showTitleCheckBox;
+	private JSpinner titleBarHeightField;
+	private JCheckBox showIconifyCheckBox;
+	private JCheckBox showMaximizeCheckBox;
+	private JCheckBox showCloseCheckBox;
+	private JCheckBox fullWindowContentCheckBox;
+	private JLabel fullWindowContentButtonsBoundsLabel;
+	private JLabel fullWindowContentButtonsBoundsField;
 	private JCheckBox menuBarCheckBox;
+	private JCheckBox menuBarEmbeddedCheckBox;
+	private JCheckBox menuBarVisibleCheckBox;
 	private JCheckBox rightCompCheckBox;
+	private JCheckBox rightStretchCompCheckBox;
+	private JCheckBox tallCompCheckBox;
 	private JButton addMenuButton;
 	private JButton addGlueButton;
 	private JButton addCaptionButton;
+	private JButton addTextFieldButton;
 	private JButton removeMenuButton;
 	private JButton changeMenuButton;
 	private JButton changeTitleButton;
-	private JCheckBox menuBarEmbeddedCheckBox;
-	private JCheckBox rightStretchCompCheckBox;
-	private JCheckBox menuBarVisibleCheckBox;
-	private JCheckBox colorizeMenuBarCheckBox;
-	private JCheckBox unifiedBackgroundCheckBox;
-	private JCheckBox colorizeMenusCheckBox;
-	private JCheckBox colorizeTitleBarCheckBox;
-	private JCheckBox resizableCheckBox;
-	private JCheckBox maximizedBoundsCheckBox;
-	private JCheckBox undecoratedCheckBox;
-	private JCheckBox fullScreenCheckBox;
 	private JRadioButton styleNoneRadioButton;
 	private JRadioButton styleFrameRadioButton;
 	private JRadioButton stylePlainRadioButton;
@@ -1083,11 +1391,16 @@ debug*/
 	private JRadioButton iconTestRandomRadioButton;
 	private JRadioButton iconTestMRIRadioButton;
 	private JRadioButton iconTestDynMRIRadioButton;
-	private FlatTriStateCheckBox showIconCheckBox;
-	private JCheckBox showTitleCheckBox;
-	private JCheckBox showIconifyCheckBox;
-	private JCheckBox showMaximizeCheckBox;
-	private JCheckBox showCloseCheckBox;
+	private JCheckBox unifiedBackgroundCheckBox;
+	private JCheckBox colorizeTitleBarCheckBox;
+	private JCheckBox colorizeMenuBarCheckBox;
+	private JCheckBox colorizeMenusCheckBox;
+	private JCheckBox translucentWindowBackgroundCheckBox;
+	private JRadioButton typeNormalRadioButton;
+	private JRadioButton typeUtilityRadioButton;
+	private JRadioButton typeSmallRadioButton;
+	private JCheckBox showRectanglesCheckBox;
+	private JLabel frameStateField;
 	private JMenuBar menuBar;
 	// JFormDesigner - End of variables declaration  //GEN-END:variables
 }

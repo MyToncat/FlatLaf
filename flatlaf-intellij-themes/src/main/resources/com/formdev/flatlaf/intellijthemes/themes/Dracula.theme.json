@@ -41,22 +41,16 @@
     "Bookmark": {
       "iconBackground": "accentColor",
       "Mnemonic": {
-        "iconForeground": "primaryForeground",
-        "iconBackground": "#8d6b81",
-        "iconBorderColor": "accentColor"
+        "iconForeground": "primaryForeground"
+      },
+      "MnemonicAssigned": {
+        "foreground": "primaryForeground",
+        "background": "#786299"
+      },
+      "MnemonicCurrent": {
+        "foreground": "primaryForeground",
+        "background": "#8d6b81"
       }
-    },
-    "BookmarkMnemonicAssigned": {
-      "foreground": "primaryForeground",
-      "background": "#786299",
-      "borderColor": "secondaryAccentColor"
-    },
-    "BookmarkMnemonicAvailable": {
-    },
-    "BookmarkMnemonicCurrent": {
-      "foreground": "primaryForeground",
-      "background": "#8d6b81",
-      "borderColor": "accentColor"
     },
     "Button": {
       "foreground": "primaryForeground",
@@ -156,6 +150,15 @@
         "informativeBorderColor": "#50fa7b"
       }
     },
+    "NotificationsToolwindow": {
+      "newNotification": {
+        "hoverBackground": "secondaryBackground",
+        "background": "secondaryBackground"
+      },
+      "Notification": {
+        "hoverBackground": "secondaryBackground"
+      }
+    },
     "PasswordField": {
       "background": "secondaryBackground"
     },
@@ -167,7 +170,7 @@
         "foreground": "primaryForeground"
       },
       "hoverBackground": "hoverBackground",
-      "lightSelectionBackground": "hoverBackground",
+      "lightSelectionBackground": "secondaryBackground",
       "Button": {
         "installBorderColor": "secondaryAccentColor",
         "installForeground": "secondaryAccentColor",
@@ -228,9 +231,6 @@
     "SidePanel": {
       "background": "secondaryBackground"
     },
-    "StatusBar": {
-      "hoverBackground": "hoverBackground"
-    },
     "TabbedPane": {
       "tabSelectionHeight": 1,
       "focusColor": "hoverBackground",
@@ -240,7 +240,8 @@
     },
     "Table": {
       "gridColor": "#5d617a",
-      "hoverBackground": "selectionBackground"
+      "hoverBackground": "selectionBackground",
+      "lightSelectionBackground": "secondaryBackground"
     },
     "TableHeader": {
       "bottomSeparatorColor": "separatorColor"
@@ -257,6 +258,7 @@
     },
     "ToolWindow": {
       "Button": {
+        "selectedBackground": "hoverBackground",
         "hoverBackground": "hoverBackground"
       },
       "Header": {
@@ -273,7 +275,8 @@
     "Tree": {
       "modifiedItemForeground": "accentColor",
       "selectionBackground": "selectionBackground",
-      "selectionInactiveBackground": "selectionInactiveBackground"
+      "selectionInactiveBackground": "selectionInactiveBackground",
+      "hash": "hoverBackground"
     },
     "ValidationTooltip": {
       "errorBackground": "#4c273c",
@@ -312,8 +315,11 @@
         "selectionBackground": "secondaryBackground",
         "selectionInactiveBackground": "secondaryBackground",
         "actions": {
-          "background": "hoverBackground"
+          "background": "secondaryBackground"
         }
+      },
+      "Details": {
+        "background": "hoverBackground"
       }
     }
   },

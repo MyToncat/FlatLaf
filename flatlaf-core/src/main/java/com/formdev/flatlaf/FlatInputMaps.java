@@ -50,7 +50,8 @@ class FlatInputMaps
 		}
 
 		modifyInputMap( defaults, "ComboBox.ancestorInputMap",
-			"SPACE", "spacePopup",
+// Space key still shows popup, but from FlatComboBoxUI.FlatKeySelectionManager
+//			"SPACE", "spacePopup",
 
 			"UP", mac( "selectPrevious2", "selectPrevious" ),
 			"DOWN", mac( "selectNext2", "selectNext" ),
@@ -70,7 +71,7 @@ class FlatInputMaps
 			);
 		}
 
-		// join ltr and rtl bindings to fix up/down/etc keys in right-to-left component orientation
+		// join ltr and rtl bindings to fix up/down/etc. keys in right-to-left component orientation
 		Object[] bindings = (Object[]) defaults.get( "PopupMenu.selectedWindowInputMapBindings" );
 		Object[] rtlBindings = (Object[]) defaults.get( "PopupMenu.selectedWindowInputMapBindings.RightToLeft" );
 		if( bindings != null && rtlBindings != null ) {

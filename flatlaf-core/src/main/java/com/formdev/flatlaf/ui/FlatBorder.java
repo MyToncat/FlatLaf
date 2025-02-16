@@ -28,7 +28,6 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JViewport;
 import javax.swing.UIManager;
 import javax.swing.plaf.basic.BasicBorders;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -136,7 +135,7 @@ public class FlatBorder
 			Paint borderColor = (outlineColor != null) ? outlineColor : getBorderColor( c );
 			FlatUIUtils.paintOutlinedComponent( g2, x, y, width, height,
 				focusWidth, 1, focusInnerWidth, borderWidth, arc,
-				focusColor, borderColor, null );
+				focusColor, borderColor, null, c instanceof JScrollPane );
 		} finally {
 			g2.dispose();
 		}
@@ -195,8 +194,7 @@ public class FlatBorder
 	protected boolean isEnabled( Component c ) {
 		if( c instanceof JScrollPane ) {
 			// check whether view component is disabled
-			JViewport viewport = ((JScrollPane)c).getViewport();
-			Component view = (viewport != null) ? viewport.getView() : null;
+			Component view = FlatScrollPaneUI.getView( (JScrollPane) c );
 			if( view != null && !isEnabled( view ) )
 				return false;
 		}
@@ -279,7 +277,7 @@ public class FlatBorder
 	}
 
 	/**
-	 * Returns the (unscaled) arc diameter of the border.
+	 * Returns the (unscaled) arc diameter of the border corners.
 	 */
 	protected int getArc( Component c ) {
 		return 0;

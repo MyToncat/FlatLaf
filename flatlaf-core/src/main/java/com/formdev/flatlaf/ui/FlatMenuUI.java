@@ -17,6 +17,7 @@
 package com.formdev.flatlaf.ui;
 
 import java.awt.Color;
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Graphics;
@@ -46,6 +47,7 @@ import javax.swing.plaf.basic.BasicMenuUI;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableField;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableLookupProvider;
 import com.formdev.flatlaf.ui.FlatStylingSupport.StyleableUI;
+import com.formdev.flatlaf.util.HiDPIUtils;
 import com.formdev.flatlaf.util.LoggingFacade;
 
 /**
@@ -135,6 +137,14 @@ public class FlatMenuUI
 		oldStyleValues = null;
 	}
 
+	@Override
+	protected void installComponents( JMenuItem menuItem ) {
+		super.installComponents( menuItem );
+
+		// update HTML renderer if necessary
+		FlatHTML.updateRendererCSSFontBaseSize( menuItem );
+	}
+
 	protected FlatMenuItemRenderer createRenderer() {
 		return new FlatMenuRenderer( menuItem, checkIcon, arrowIcon, acceleratorFont, acceleratorDelimiter );
 	}
@@ -158,7 +168,7 @@ public class FlatMenuUI
 				JMenu menu = (JMenu) e.getSource();
 				if( menu.isTopLevelMenu() && menu.isRolloverEnabled() ) {
 					menu.getModel().setRollover( rollover );
-					menu.repaint();
+					HiDPIUtils.repaint( menu );
 				}
 			}
 		};
@@ -166,7 +176,9 @@ public class FlatMenuUI
 
 	@Override
 	protected PropertyChangeListener createPropertyChangeListener( JComponent c ) {
-		return FlatStylingSupport.createPropertyChangeListener( c, this::installStyle, super.createPropertyChangeListener( c ) );
+		return FlatHTML.createPropertyChangeListener(
+			FlatStylingSupport.createPropertyChangeListener( c, this::installStyle,
+				super.createPropertyChangeListener( c ) ) );
 	}
 
 	/** @since 2 */
@@ -271,7 +283,7 @@ public class FlatMenuUI
 				if( !isHover() )
 					selectionBackground = getStyleFromMenuBarUI( ui -> ui.selectionBackground, menuBarSelectionBackground, selectionBackground );
 
-				JMenuBar menuBar = (JMenuBar) menuItem.getParent();
+				Container menuBar = menuItem.getParent();
 				JRootPane rootPane = SwingUtilities.getRootPane( menuBar );
 				if( rootPane != null && rootPane.getParent() instanceof Window &&
 					rootPane.getJMenuBar() == menuBar &&
@@ -321,12 +333,17 @@ public class FlatMenuUI
 		}
 
 		private <T> T getStyleFromMenuBarUI( Function<FlatMenuBarUI, T> f, T defaultValue ) {
-			MenuBarUI ui = ((JMenuBar)menuItem.getParent()).getUI();
-			if( !(ui instanceof FlatMenuBarUI) )
-				return defaultValue;
-
-			T value = f.apply( (FlatMenuBarUI) ui );
-			return (value != null) ? value : defaultValue;
+			Container menuItemParent = menuItem.getParent();
+			if( menuItemParent instanceof JMenuBar ) {
+				MenuBarUI ui = ((JMenuBar) menuItemParent).getUI();
+				if( ui instanceof FlatMenuBarUI ) {
+					T value = f.apply( (FlatMenuBarUI) ui );
+					if( value != null ) {
+						return value;
+					}
+				}
+			}
+			return defaultValue;
 		}
 	}
 }

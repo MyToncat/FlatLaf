@@ -16,6 +16,7 @@
 
 package com.formdev.flatlaf.ui;
 
+import java.awt.GraphicsConfiguration;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.Window;
@@ -23,6 +24,7 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.AffineTransform;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
+import com.formdev.flatlaf.util.SystemInfo;
 
 /**
  * Native methods for Linux.
@@ -34,8 +36,16 @@ import javax.swing.JFrame;
  */
 class FlatNativeLinuxLibrary
 {
+	private static int API_VERSION_LINUX = 3001;
+
+	/**
+	 * Checks whether native library is loaded/available.
+	 * <p>
+	 * <b>Note</b>: It is required to invoke this method before invoking any other
+	 *              method of this class. Otherwise, the native library may not be loaded.
+	 */
 	static boolean isLoaded() {
-		return FlatNativeLibrary.isLoaded();
+		return SystemInfo.isLinux && FlatNativeLibrary.isLoaded( API_VERSION_LINUX );
 	}
 
 	// direction for _NET_WM_MOVERESIZE message
@@ -87,7 +97,11 @@ class FlatNativeLinuxLibrary
 	}
 
 	private static Point scale( Window window, Point pt ) {
-		AffineTransform transform = window.getGraphicsConfiguration().getDefaultTransform();
+		GraphicsConfiguration gc = window.getGraphicsConfiguration();
+		if( gc == null )
+			return pt;
+
+		AffineTransform transform = gc.getDefaultTransform();
 		int x = (int) Math.round( pt.x * transform.getScaleX() );
 		int y = (int) Math.round( pt.y * transform.getScaleY() );
 		return new Point( x, y );
